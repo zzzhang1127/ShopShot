@@ -1,0 +1,66 @@
+{
+  "parsed": {
+    "batch_size": 3,
+    "submitted": 3,
+    "elapsed_seconds": 94.93105697631836,
+    "results": [
+      {
+        "status": "succeeded",
+        "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933326657600000000000000000000ffffac15b58cabad0a.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T031521Z&X-Tos-Expires=86400&X-Tos-Signature=4f7968f724d1cec5f1c772c087bc58ebd40cff5766b3f668fa68dfffbde2ebde&X-Tos-SignedHeaders=host",
+        "usage": {
+          "completion_tokens": 108900,
+          "total_tokens": 108900
+        },
+        "download_success": true,
+        "local_path": "D:\\FILE\\ShopShot\\outputs\\api_results\\seedance_05_batch_1_111527.mp4",
+        "prompt": "一款洗面奶的特写镜头，泡沫丰富"
+      },
+      {
+        "status": "succeeded",
+        "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933326908500000000000000000000ffffac14f3bf19950c.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T031509Z&X-Tos-Expires=86400&X-Tos-Signature=07b35cd58a553ec32649fac1cb077da8553ca8e99cf4fa817173104538e67a4b&X-Tos-SignedHeaders=host",
+        "usage": {
+          "completion_tokens": 108900,
+          "total_tokens": 108900
+        },
+        "download_success": true,
+        "local_path": "D:\\FILE\\ShopShot\\outputs\\api_results\\seedance_05_batch_2_111536.mp4",
+        "prompt": "一支口红在模特手中展示"
+      },
+      {
+        "status": "succeeded",
+        "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933327167800000000000000000000ffffac15d5def00c2d.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T031547Z&X-Tos-Expires=86400&X-Tos-Signature=bb7051e4704c22f27c2b63b1fda71cf8d2ecfe3772f4cf9e98a1363c73691a0f&X-Tos-SignedHeaders=host",
+        "usage": {
+          "completion_tokens": 108900,
+          "total_tokens": 108900
+        },
+        "download_success": true,
+        "local_path": "D:\\FILE\\ShopShot\\outputs\\api_results\\seedance_05_batch_3_111548.mp4",
+        "prompt": "防晒霜在海滩上的产品展示"
+      }
+    ]
+  },
+  "raw_response": {
+    "id": "cgt-20260521111431-mlcsx",
+    "model": "doubao-seedance-1-5-pro-251215",
+    "status": "succeeded",
+    "content": {
+      "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933327167800000000000000000000ffffac15d5def00c2d.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T031547Z&X-Tos-Expires=86400&X-Tos-Signature=bb7051e4704c22f27c2b63b1fda71cf8d2ecfe3772f4cf9e98a1363c73691a0f&X-Tos-SignedHeaders=host"
+    },
+    "usage": {
+      "completion_tokens": 108900,
+      "total_tokens": 108900
+    },
+    "created_at": 1779333271,
+    "updated_at": 1779333347,
+    "seed": 73363,
+    "resolution": "720p",
+    "ratio": "16:9",
+    "duration": 5,
+    "framespersecond": 24,
+    "service_tier": "default",
+    "execution_expires_after": 172800,
+    "generate_audio": false,
+    "draft": false,
+    "priority": 0
+  }
+}

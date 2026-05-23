@@ -1,0 +1,20 @@
+{
+  "input_modality": "text",
+  "output_modality": "text",
+  "content": "抖音电商的短视频带货模式是商家或内容创作者发布适配平台内容生态的场景化种草短视频并挂载商品购买入口，依托平台精准算法匹配触达潜在消费群体，以内容激发用户消费兴趣后实现即时转化的短路径兴趣电商经营模式。",
+  "usage": {
+    "completion_tokens": 468,
+    "prompt_tokens": 59,
+    "total_tokens": 527,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 412,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cached_tokens": 0
+    }
+  }
+}

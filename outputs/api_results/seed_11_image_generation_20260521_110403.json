@@ -1,0 +1,65 @@
+{
+  "parsed": {
+    "input_modality": "text",
+    "output_modality": "text",
+    "output_raw": "很抱歉我暂时无法直接生成图片，不过我给你准备了适配各类AI文生图工具（抖音即梦、文心一格、Midjourney、DALL·E等）的精准提示词，直接复制就能生成符合你要求的电商防晒霜展示图：\n\n---\n### 通用中文提示词（国内工具直接用）：\n电商美妆产品高清摄影，一瓶防晒霜放置在干净的白色大理石台面上，台面有产品的淡弱自然倒影，背景是柔和的淡蓝到米白的渐变柔光背景，整体采用侧上方柔光灯打光，无生硬阴影，光线通透柔和，防晒霜的正面标签完整清晰、文字无畸变模糊，色彩还原真实，画面干净高级无多余元素，8K超高清，细节锐利，自然浅景深突出产品主体，符合天猫/京东电商主图标准。\n*如果需要特定包装/防晒值标注，可以额外补充描述，比如「软管包装防晒霜、标签印有SPF50+ PA++++字样」即可。*\n\n---\n### Midjourney适配提示词+参数：\n```\nE-commerce beauty product photography, a bottle of sunscreen on a clean white marble countertop with a soft natural reflection of the product, background is a soft gradient from light blue to off-white, soft side top fill light, no harsh shadows, the front label of the sunscreen is complete and clear with no distorted text, true color reproduction, clean and premium frame, 8K ultra HD, sharp details, natural shallow depth of field to highlight the product, suitable for Amazon main image --ar 3:4 --v 6.0 --style raw --q 2\n```\n\n---\n### 生成小技巧：\n如果生成后出现标签模糊、光影不对的问题，用工具的「局部重绘」功能涂抹对应区域，补充提示词「清晰锐利的产品标签、柔和均匀的柔光」单独优化即可；3:4的比例是电商主图的常用尺寸，如果需要做横版海报把参数里的`--ar 3:4`改成`--ar 16:9`就行。",
+    "image_url": null,
+    "md_images": [],
+    "usage": {
+      "completion_tokens": 1344,
+      "prompt_tokens": 82,
+      "total_tokens": 1426,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": null,
+        "audio_tokens": null,
+        "reasoning_tokens": 900,
+        "rejected_prediction_tokens": null
+      },
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      }
+    },
+    "supports_image_generation": false
+  },
+  "raw_response": {
+    "id": "021779332607329ff5cc89660498a4193f72601d9bf1063228a48",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "logprobs": null,
+        "message": {
+          "content": "很抱歉我暂时无法直接生成图片，不过我给你准备了适配各类AI文生图工具（抖音即梦、文心一格、Midjourney、DALL·E等）的精准提示词，直接复制就能生成符合你要求的电商防晒霜展示图：\n\n---\n### 通用中文提示词（国内工具直接用）：\n电商美妆产品高清摄影，一瓶防晒霜放置在干净的白色大理石台面上，台面有产品的淡弱自然倒影，背景是柔和的淡蓝到米白的渐变柔光背景，整体采用侧上方柔光灯打光，无生硬阴影，光线通透柔和，防晒霜的正面标签完整清晰、文字无畸变模糊，色彩还原真实，画面干净高级无多余元素，8K超高清，细节锐利，自然浅景深突出产品主体，符合天猫/京东电商主图标准。\n*如果需要特定包装/防晒值标注，可以额外补充描述，比如「软管包装防晒霜、标签印有SPF50+ PA++++字样」即可。*\n\n---\n### Midjourney适配提示词+参数：\n```\nE-commerce beauty product photography, a bottle of sunscreen on a clean white marble countertop with a soft natural reflection of the product, background is a soft gradient from light blue to off-white, soft side top fill light, no harsh shadows, the front label of the sunscreen is complete and clear with no distorted text, true color reproduction, clean and premium frame, 8K ultra HD, sharp details, natural shallow depth of field to highlight the product, suitable for Amazon main image --ar 3:4 --v 6.0 --style raw --q 2\n```\n\n---\n### 生成小技巧：\n如果生成后出现标签模糊、光影不对的问题，用工具的「局部重绘」功能涂抹对应区域，补充提示词「清晰锐利的产品标签、柔和均匀的柔光」单独优化即可；3:4的比例是电商主图的常用尺寸，如果需要做横版海报把参数里的`--ar 3:4`改成`--ar 16:9`就行。",
+          "refusal": null,
+          "role": "assistant",
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": null,
+          "reasoning_content": "\n用户现在需要生成电商防晒霜的展示图对吧，首先我得先给出对应的AI生成提示词，要准确符合要求，然后还要说一下如果是用Midjourney、文生图这些工具直接用就行，另外还要补充一下这种图的优化小建议？不对，首先先把专业的prompt写清楚，分不同工具的？不对，首先用户要的是生成这个图，首先我得先说明，现在我没法直接输出图片，但是可以给你精准的生成prompt，不管是用国内的文心一格、抖音的即梦，还是国外的Midjourney、DALL·E都能直接用，然后把prompt写得非常细对吧。\n首先，先写通用的中文prompt：电商产品摄影图，一瓶清爽包装的防晒霜放在白色大理石台面上，背景是柔和的淡蓝到浅白的渐变柔光背景，整体光线是柔和的侧上方柔光，无硬阴影，产品正面标签字体清晰完整、没有畸变，色彩还原准确，大理石台面有轻微的产品倒影，整体画面干净高级，符合美妆护肤品类的电商主图风格，8K超高清，RAW格式原片质感，细节锐利，f/1.8光圈，景深自然，突出产品主体。\n然后如果是Midjourney的话，加英文的适配，还有参数：--ar 3:4 --style raw --q 2 --v 6.0 对吧，3:4是电商主图常用比例。\n然后还要补充小提示对吧，比如如果想要特定包装的防晒霜，比如是按压瓶、还是软管、还是玻璃瓶，或者品牌logo的话，可以在prompt里补充对应描述，标签的内容也可以加上，比如“SPF50+ PA++++”的字样可以加进去更真实。\n然后还要说如果生成之后有小瑕疵，比如标签糊的话，可以用局部重绘功能单独刷标签区域，提示“清晰的防晒霜产品标签，文字锐利无变形”就行。\n对，还要友好一点，先说明现在不能直接出图，给的prompt直接复制到文生图工具就能生成符合要求的图，对吧？\n等下，组织语言：\n很抱歉我暂时无法直接生成图片，不过我给你准备了适配各类AI文生图工具（抖音即梦、文心一格、Midjourney、DALL·E等）的精准提示词，直接复制就能生成符合你要求的电商防晒霜展示图：\n\n### 通用中文提示词（国内工具直接用）：\n电商美妆产品高清摄影，一瓶防晒霜放置在干净的白色大理石台面上，台面有产品的淡弱自然倒影，背景是柔和的淡蓝到米白的渐变柔光背景，整体采用侧上方柔光灯打光，无生硬阴影，光线通透柔和，防晒霜的正面标签完整清晰、文字无畸变模糊，色彩还原真实，画面干净高级无多余元素，8K超高清，细节锐利，自然浅景深突出产品主体，符合天猫/京东电商主图标准。\n如果需要特定包装/防晒值标注，可以额外补充描述，比如「软管包装防晒霜、标签印有SPF50+ PA++++字样」即可。\n\n### Midjourney适配提示词+参数：\nE-commerce beauty product photography, a bottle of sunscreen on a clean white marble countertop with a soft natural reflection of the product, background is a soft gradient from light blue to off-white, soft side top fill light, no harsh shadows, the front label of the sunscreen is complete and clear with no distorted text, true color reproduction, clean and premium frame, 8K ultra HD, sharp details, natural shallow depth of field to highlight the product, suitable for Tiktok/Amazon main image --ar 3:4 --v 6.0 --style raw --q 2\n\n### 生成小技巧：\n如果生成后出现标签模糊、光影不对的问题，用工具的「局部重绘」功能涂抹对应区域，补充提示词「清晰锐利的产品标签、柔和均匀的柔光」单独优化即可，3:4的比例是电商主图的常用尺寸，如果需要做横版海报把参数里的`--ar 3:4`改成`--ar 16:9`就行。"
+        }
+      }
+    ],
+    "created": 1779332642,
+    "model": "doubao-seed-2-0-pro-260215",
+    "object": "chat.completion",
+    "service_tier": "default",
+    "system_fingerprint": null,
+    "usage": {
+      "completion_tokens": 1344,
+      "prompt_tokens": 82,
+      "total_tokens": 1426,
+      "completion_tokens_details": {
+        "accepted_prediction_tokens": null,
+        "audio_tokens": null,
+        "reasoning_tokens": 900,
+        "rejected_prediction_tokens": null
+      },
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      }
+    }
+  }
+}

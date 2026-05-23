@@ -1,0 +1,29 @@
+{
+  "parsed": {
+    "error": "400 Client Error: Bad Request for url: https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks"
+  },
+  "raw_response": {
+    "id": "cgt-20260521111431-mlcsx",
+    "model": "doubao-seedance-1-5-pro-251215",
+    "status": "succeeded",
+    "content": {
+      "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933327167800000000000000000000ffffac15d5def00c2d.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T031547Z&X-Tos-Expires=86400&X-Tos-Signature=bb7051e4704c22f27c2b63b1fda71cf8d2ecfe3772f4cf9e98a1363c73691a0f&X-Tos-SignedHeaders=host"
+    },
+    "usage": {
+      "completion_tokens": 108900,
+      "total_tokens": 108900
+    },
+    "created_at": 1779333271,
+    "updated_at": 1779333347,
+    "seed": 73363,
+    "resolution": "720p",
+    "ratio": "16:9",
+    "duration": 5,
+    "framespersecond": 24,
+    "service_tier": "default",
+    "execution_expires_after": 172800,
+    "generate_audio": false,
+    "draft": false,
+    "priority": 0
+  }
+}

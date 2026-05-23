@@ -1,0 +1,45 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.schemas.common import ApiResponse
+from app.schemas.script import ScriptRead, ScriptUpdate, ScriptGenerateRequest
+from app.schemas.generation import GenerationTaskRead
+from app.services.script_service import ScriptService
+from app.agents.director import DirectorAgent
+
+router = APIRouter()
+
+
+@router.post("/scripts/generate", response_model=ApiResponse[GenerationTaskRead])
+def generate_script(
+    body: ScriptGenerateRequest,
+    db: Session = Depends(get_db),
+):
+    agent = DirectorAgent(db)
+    task_id = agent.run_script_only(body.project_id)
+    from app.services.generation_service import GenerationService
+    svc = GenerationService(db)
+    task = svc.get(task_id)
+    return ApiResponse(data=GenerationTaskRead.model_validate(task))
+
+
+@router.get("/scripts", response_model=ApiResponse[list[ScriptRead]])
+def list_scripts(
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    svc = ScriptService(db)
+    items = svc.list_by_project(project_id)
+    return ApiResponse(data=[ScriptRead.model_validate(s) for s in items])
+
+
+@router.put("/scripts/{script_id}", response_model=ApiResponse[ScriptRead])
+def update_script(
+    script_id: int,
+    body: ScriptUpdate,
+    db: Session = Depends(get_db),
+):
+    svc = ScriptService(db)
+    script = svc.update(script_id, **body.model_dump(exclude_unset=True))
+    return ApiResponse(data=ScriptRead.model_validate(script))

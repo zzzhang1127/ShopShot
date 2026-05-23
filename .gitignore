@@ -1,0 +1,32 @@
+# 环境变量（含敏感 API Key）
+.env
+
+# 参考仓库：火山 ai-app-lab 体积大，不推送 GitHub（projects 下其余目录仍跟踪）
+projects/ai-app-lab/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# 测试输出
+test_outputs/
+*.mp4
+*.jpg
+*.jpeg
+*.png
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,37 @@
+{
+  "parsed": {
+    "status": "succeeded",
+    "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933269412300000000000000000000ffffac177d8985d290.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T030529Z&X-Tos-Expires=86400&X-Tos-Signature=d67b492ed07bc43d08888c8b2532e709df4631147d575c22bbae47519cba59e5&X-Tos-SignedHeaders=host",
+    "usage": {
+      "completion_tokens": 109586,
+      "total_tokens": 109586
+    },
+    "download_success": true,
+    "local_path": "D:\\FILE\\ShopShot\\outputs\\api_results\\seedance_02_image2video_110533.mp4",
+    "input_modality": "text+image(jpeg)"
+  },
+  "raw_response": {
+    "id": "cgt-20260521110452-qp5cb",
+    "model": "doubao-seedance-1-5-pro-251215",
+    "status": "succeeded",
+    "content": {
+      "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/doubao-seedance-1-5-pro/02177933269412300000000000000000000ffffac177d8985d290.mp4?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=AKLTYWJkZTExNjA1ZDUyNDc3YzhjNTM5OGIyNjBhNDcyOTQ%2F20260521%2Fcn-beijing%2Ftos%2Frequest&X-Tos-Date=20260521T030529Z&X-Tos-Expires=86400&X-Tos-Signature=d67b492ed07bc43d08888c8b2532e709df4631147d575c22bbae47519cba59e5&X-Tos-SignedHeaders=host"
+    },
+    "usage": {
+      "completion_tokens": 109586,
+      "total_tokens": 109586
+    },
+    "created_at": 1779332694,
+    "updated_at": 1779332729,
+    "seed": 42862,
+    "resolution": "720p",
+    "ratio": "4:3",
+    "duration": 5,
+    "framespersecond": 24,
+    "service_tier": "default",
+    "execution_expires_after": 172800,
+    "generate_audio": false,
+    "draft": false,
+    "priority": 0
+  }
+}

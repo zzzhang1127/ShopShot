@@ -1,0 +1,13 @@
+{
+  "parsed": {
+    "input_modality": "text+video(file_upload)",
+    "output_modality": null,
+    "file_id": "file-20260521110405-kk6c6",
+    "supported": false,
+    "error": "Error code: 400 - {'error': {'code': 'InvalidParameter', 'message': 'The parameter `messages.content.type` specified in the request are not valid: invalid value: `file`, supported values are: `text`, `image_url`, `video_url`, and `input_audio`. Request id: 021779332645608ff5cc89660498a4193f72601d9bf106399ccd8', 'param': '', 'type': 'BadRequest'}}"
+  },
+  "raw_response": {
+    "_error": "无法序列化",
+    "_str": "{'error': \"Error code: 400 - {'error': {'code': 'InvalidParameter', 'message': 'The parameter `messages.content.type` specified in the request are not valid: invalid value: `file`, supported values are: `text`, `image_url`, `video_url`, and `input_audio`. Request id: 021779332645608ff5cc89660498a4193f72601d9bf106399ccd8', 'param': '', 'type': 'BadRequest'}}\", 'source': 'exception'}"
+  }
+}
