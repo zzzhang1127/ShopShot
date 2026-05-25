@@ -41,11 +41,13 @@ test_list.txt
 backend/test_scripts*.json
 test_outputs/
 
-# 媒体二进制
+# 媒体二进制（outputs 等；评测集 datasets/eval 需提交）
 *.mp4
 *.jpg
 *.jpeg
 *.png
+!datasets/eval/
+!datasets/eval/**
 
 # 前端构建
 frontend/dist/
