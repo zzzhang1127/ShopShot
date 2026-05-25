@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 from app.models import TaskStatus, TaskType
 
 
@@ -14,9 +15,9 @@ class GenerationTaskRead(BaseModel):
     step: Optional[str] = None
     error: Optional[str] = None
     result: Optional[str] = None
-    started_at: Optional[str] = None
-    finished_at: Optional[str] = None
-    created_at: Optional[str] = None
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -28,6 +29,13 @@ class TaskStatusRead(BaseModel):
     progress: int
     agent_name: Optional[str] = None
     step: Optional[str] = None
+    error: Optional[str] = None
+    result: Optional[str] = None
+    created_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
 
 
 class TaskResultRead(BaseModel):
@@ -36,10 +44,16 @@ class TaskResultRead(BaseModel):
     result: Optional[str] = None
     error: Optional[str] = None
 
+    class Config:
+        from_attributes = True
+
 
 class TaskCancelRead(BaseModel):
     id: str
     status: TaskStatus
+
+    class Config:
+        from_attributes = True
 
 
 class AgentRunRequest(BaseModel):
@@ -56,3 +70,10 @@ class QuickGenerateRequest(BaseModel):
     first_frame: Optional[str] = None
     target_ratio: Optional[str] = None
     target_resolution: Optional[str] = None
+    duration: Optional[int] = 15
+
+
+class VideoGenerateRequest(BaseModel):
+    target_ratio: Optional[str] = None
+    target_resolution: Optional[str] = None
+    duration: Optional[int] = 15

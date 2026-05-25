@@ -49,6 +49,8 @@ Notice：
 # Seedance prompt 规范：
 - action字段必须用英文
 - 商品特征关键词放在句首
+- image字段必须明确写出商品主体、颜色、材质、品类和电商广告场景；不得泛化成 unrelated lifestyle / landscape / generic woman
+- action字段虽然描述运镜，但也必须保留商品主体词，例如 "red high heel shoes, close-up, slow push in"
 - 不使用负面prompt（如no blur, don't shake）
 - 一次只描述1~2种运镜，避免堆叠
 - 可用基础运镜：push in, pull out, pan, track, orbit, follow, crane up, crane down, zoom
@@ -64,5 +66,6 @@ def build_storyboard_user_prompt(product_info: str, references: list[str], video
 用户上传素材URL：
 {refs_text}
 
-请生成AIDA四镜分镜脚本。
+请生成AIDA四镜分镜脚本。必须严格围绕商品信息中的具体商品，不得把主体换成风景、人物写真或无关生活方式画面。
+如果商品是“红色高跟鞋”，每个 image/action 都必须显式包含 red high heel shoes / red stilettos 等商品主体词。
 """

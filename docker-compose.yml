@@ -1,0 +1,43 @@
+# ShopShot 一键部署（单容器：前端静态资源 + FastAPI + FFmpeg）
+#
+# 1. copy .env.example .env   并填入火山方舟 Key / 端点
+# 2. docker compose up -d --build
+#    或 Windows: docker-start.bat
+# 3. 浏览器打开 http://localhost:8000
+#
+# 数据持久化在卷 shopshot-data（SQLite + 生成视频）
+
+services:
+  shopshot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopshot
+    ports:
+      - "${SHOPSHOT_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      # 容器内固定路径（覆盖 .env 中的本地相对路径）
+      DATABASE_URL: sqlite:////data/shopshot.db
+      STORAGE_LOCAL_PATH: /data/outputs
+      DEBUG: "${DEBUG:-false}"
+    volumes:
+      - shopshot-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  shopshot-data:
+    name: shopshot-data

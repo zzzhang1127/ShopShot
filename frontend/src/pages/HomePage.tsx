@@ -6,7 +6,7 @@ import {
   Link as LinkIcon, Upload, Wand2, X, Globe, ChevronRight
 } from 'lucide-react';
 import { t, getLang, setLang, subscribe } from '../lib/i18n';
-import { createProject } from '../api/client';
+import { createProject, uploadAsset, formatApiError } from '../api/client';
 
 interface Template {
   id: string;
@@ -72,19 +72,21 @@ export default function HomePage() {
     setCreating(true);
     try {
       const project = await createProject({
-        name: query.trim() || selectedTemplate?.titleKey || t('untitledScript'),
+        name:
+          query.trim() ||
+          (selectedTemplate ? t(selectedTemplate.titleKey) : '') ||
+          t('untitledScript'),
         description: pastedLink || undefined,
         product_info: query.trim() || undefined,
         video_mode: selectedTemplate?.category || 'product_show',
       });
-      navigate(`/projects/${project.id}`);
-    } catch (err: any) {
-      const msg = err.message || '';
-      if (msg.includes('Network Error')) {
-        alert('网络错误：后端服务未启动，请先运行 start.bat 启动后端（端口 8000）');
-      } else {
-        alert(msg || '创建项目失败');
+      if (uploadedFile) {
+        await uploadAsset(project.id, uploadedFile);
       }
+      setShowModal(false);
+      navigate(`/projects/${project.id}`);
+    } catch (err: unknown) {
+      alert(formatApiError(err) || '创建项目失败');
     } finally {
       setCreating(false);
     }
@@ -128,7 +130,13 @@ export default function HomePage() {
                 <span className="absolute -top-1 right-2 bg-blue-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold z-10">{t(item.badge)}</span>
               )}
               <button
-                onClick={() => item.path && navigate(item.path)}
+                onClick={() => {
+                  if (item.path === '/library' || item.path === '/videos' || item.path === '/audio' || item.path === '/templates' || item.path === '/analytics' || item.path === '/settings') {
+                    navigate('/projects');
+                    return;
+                  }
+                  if (item.path) navigate(item.path);
+                }}
                 className={`flex flex-col items-center justify-center gap-1 cursor-pointer w-full py-2 hover:text-white transition-colors ${item.active ? 'text-white' : 'text-gray-500'}`}
               >
                 <item.icon size={20} />

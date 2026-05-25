@@ -1,8 +1,14 @@
-# 环境变量（含敏感 API Key）
+# 环境变量（仅根目录 .env，含 API Key，勿提交）
 .env
+backend/.env
+frontend/.env
+frontend/.env.*
 
-# 参考仓库：火山 ai-app-lab 体积大，不推送 GitHub（projects 下其余目录仍跟踪）
+# 参考仓库：火山 ai-app-lab 体积大，不推送
 projects/ai-app-lab/
+
+# 本地自动化（个人环境）
+auto_enter.py
 
 # Python
 __pycache__/
@@ -14,19 +20,41 @@ env/
 venv/
 .venv/
 
-# 测试输出
+# 日志（任意目录，运行时产生，勿提交）
+*.log
+logs/
+err.log
+out.log
+backend/e2e_server*.log
+
+# 数据库
+*.db
+backend/shopshot.db
+
+# AI 生成与上传产物
+outputs/
+
+# FFmpeg / 测试临时文本（非源码；requirements.txt 等仍提交）
+*.concat_list.txt
+**/concat_list.txt
+test_list.txt
+backend/test_scripts*.json
 test_outputs/
+
+# 媒体二进制
 *.mp4
 *.jpg
 *.jpeg
 *.png
 
-# IDE
+# 前端构建
+frontend/dist/
+frontend/node_modules/
+
+# IDE / OS
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db

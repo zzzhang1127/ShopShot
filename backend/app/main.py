@@ -22,6 +22,22 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "di
 
 init_db()
 
+
+def _health_payload():
+    return {
+        "status": "ok",
+        "mock_mode": settings.mock_mode,
+        "seedance_ep_configured": bool(settings.doubao_seedance_ep),
+        "volc_api_key_configured": bool(settings.volc_api_key),
+        "storage": str(STORAGE_ROOT),
+    }
+
+
+print(
+    f"[ShopShot] mock_mode={settings.mock_mode} "
+    f"seedance_ep={'yes' if settings.doubao_seedance_ep else 'NO'}"
+)
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
@@ -46,6 +62,12 @@ app.include_router(videos.router, prefix="/api/v1", tags=["Videos"])
 app.include_router(agents.router, prefix="/api/v1", tags=["Agents"])
 app.include_router(projects.router, prefix="/api/v1", tags=["Projects"])
 
+
+@app.get("/api/v1/health")
+def api_health():
+    return _health_payload()
+
+
 app.mount("/files", StaticFiles(directory=str(STORAGE_ROOT)), name="files")
 
 if FRONTEND_DIST.exists():
@@ -61,7 +83,7 @@ if FRONTEND_DIST.exists():
 
     @app.get("/health")
     def health():
-        return {"status": "ok"}
+        return _health_payload()
 
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):
@@ -72,4 +94,4 @@ if FRONTEND_DIST.exists():
 else:
     @app.get("/health")
     def health():
-        return {"status": "ok"}
+        return _health_payload()

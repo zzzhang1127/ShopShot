@@ -28,8 +28,10 @@ import {
   getTaskStatus,
   updateShot,
   updateProject,
+  formatApiError,
 } from '../api/client';
 import { t, subscribe } from '../lib/i18n';
+import GenerationProgress from '../components/GenerationProgress';
 import type { Project, Asset, Script, Shot, Video as VideoType, GenerationTask } from '../types';
 
 type Mode = 'quick' | 'advanced';
@@ -50,7 +52,7 @@ export default function ProjectDetail() {
   // UI State
   const [mode, setMode] = useState<Mode>('advanced');
   const [aspectRatio, setAspectRatio] = useState('9:16');
-  const [duration, setDuration] = useState(5);
+  const [duration, setDuration] = useState(15);
   const [prompt, setPrompt] = useState('');
   const [langTick, setLangTick] = useState(0);
 
@@ -76,9 +78,6 @@ export default function ProjectDetail() {
     if (s.length > 0) {
       const sh = await listShots(s[0].id);
       setShots(sh);
-      if (sh.length > 0) {
-        setDuration(sh[0].duration || 5);
-      }
     }
   }, [projectId]);
 
@@ -86,23 +85,31 @@ export default function ProjectDetail() {
     load();
   }, [load]);
 
-  // Task polling
+  // 任务进度轮询（真实 API 异步生成）
   useEffect(() => {
-    if (!task || task.status === 'succeeded' || task.status === 'failed') return;
+    if (!task?.id) return;
+    if (task.status === 'succeeded' || task.status === 'failed') {
+      load().finally(() => setLoading(false));
+      return;
+    }
     const iv = setInterval(async () => {
-      const t = await getTaskStatus(task.id);
-      setTask(t);
-      if (t.status === 'succeeded' || t.status === 'failed') {
-        clearInterval(iv);
-        load();
+      try {
+        const latest = await getTaskStatus(task.id);
+        setTask(latest);
+      } catch {
+        /* ignore transient poll errors */
       }
-    }, 3000);
+    }, 1500);
     return () => clearInterval(iv);
-  }, [task, load]);
+  }, [task?.id, task?.status, load]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (assets.some((asset) => asset.name === file.name && asset.type === (file.type.startsWith('video') ? 'video' : 'image'))) {
+      alert(t('assetAlreadyExists'));
+      return;
+    }
     setLoading(true);
     try {
       await uploadAsset(projectId, file);
@@ -118,38 +125,41 @@ export default function ProjectDetail() {
 
   const handleGenerate = async () => {
     setLoading(true);
+    setTask(null);
     try {
+      const promptChanged =
+        Boolean(prompt.trim()) && prompt.trim() !== (project?.product_info || '').trim();
       await updateProject(projectId, {
         target_ratio: aspectRatio,
         product_info: prompt || project?.product_info,
       });
 
-      let t: GenerationTask;
-      if (mode === 'quick') {
-        t = await runQuickAgent(projectId, prompt || project?.product_info || '', {
-          target_ratio: aspectRatio,
-        });
-      } else {
-        if (scripts.length === 0) {
-          t = await generateScript(projectId);
-        } else {
-          for (const shot of shots) {
-            if (shot.duration !== duration) {
-              await updateShot(shot.id, { duration });
-            }
+      if (mode !== 'quick' && scripts.length > 0) {
+        for (const shot of shots) {
+          if (shot.duration !== duration) {
+            await updateShot(shot.id, { duration });
           }
-          t = await runVideoAgent(projectId);
         }
       }
-      setTask(t);
-      await load();
-    } catch (err: any) {
-      const detail = err?.response?.data?.message || err?.response?.data?.detail || err?.message || String(err);
-      const reqUrl = err?.config?.url || 'unknown';
-      const reqMethod = err?.config?.method?.toUpperCase() || 'UNKNOWN';
-      alert(`${t('scriptGenerationFailed')}\n\n${reqMethod} ${reqUrl}\n${detail}`);
-    } finally {
+
+      let started: GenerationTask;
+      if (mode === 'quick') {
+        started = await runQuickAgent(projectId, prompt || project?.product_info || '', {
+          target_ratio: aspectRatio,
+          duration,
+        });
+      } else if (scripts.length === 0 || promptChanged) {
+        started = await generateScript(projectId);
+      } else {
+        started = await runVideoAgent(projectId, {
+          target_ratio: aspectRatio,
+          duration,
+        });
+      }
+      setTask(started);
+    } catch (err: unknown) {
       setLoading(false);
+      alert(`${t('scriptGenerationFailed')}\n\n${formatApiError(err)}`);
     }
   };
 
@@ -160,7 +170,7 @@ export default function ProjectDetail() {
 
   const handleReset = () => {
     setAspectRatio('9:16');
-    setDuration(5);
+    setDuration(15);
     setMode('advanced');
   };
 
@@ -174,7 +184,8 @@ export default function ProjectDetail() {
   const generateLabel =
     mode === 'quick'
       ? t('quickGenerate')
-      : scripts.length === 0
+      : scripts.length === 0 ||
+          (Boolean(prompt.trim()) && prompt.trim() !== (project?.product_info || '').trim())
         ? t('generateScript')
         : t('generateVideo');
 
@@ -271,7 +282,7 @@ export default function ProjectDetail() {
             {t('duration')} (seconds)
           </label>
           <div className="flex bg-[#1C1B2B] p-1 rounded-xl border border-white/5">
-            {[4, 5, 8, 10].map((d) => (
+            {[5, 10, 15].map((d) => (
               <button
                 key={d}
                 onClick={() => setDuration(d)}
@@ -351,16 +362,32 @@ export default function ProjectDetail() {
             {/* Action Bar */}
             <div className="flex items-center justify-between border-t border-white/5 pt-5">
               <div className="flex gap-2">
-                <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-medium transition-all">
+                <label className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-medium transition-all cursor-pointer">
                   <ImageIcon size={14} /> {t('image')}
-                </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-medium transition-all">
+                  <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('advanced');
+                    if (scripts.length > 0) handleGenerate();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-medium transition-all"
+                >
                   <Video size={14} /> {t('video')}
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-medium transition-all">
+                <button
+                  type="button"
+                  onClick={() => alert(t('audio') + ' (P1)')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-medium transition-all"
+                >
                   <Music size={14} /> {t('audio')}
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-medium transition-all">
+                <button
+                  type="button"
+                  onClick={() => setMode('quick')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-medium transition-all"
+                >
                   <LayoutTemplate size={14} /> {t('template')}
                 </button>
               </div>
@@ -383,49 +410,15 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* Premium Banner */}
-          <div className="w-full max-w-4xl mt-5">
-            <div className="bg-gradient-to-r from-indigo-500/20 via-purple-500/10 to-transparent p-[1px] rounded-2xl overflow-hidden">
-              <div className="bg-[#0B0A16] px-5 py-3 flex items-center justify-between rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">
-                    <span className="text-indigo-400">{t('upgrade')}</span> {t('getPremium')}
-                  </span>
-                </div>
-                <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                  <Zap size={16} className="text-indigo-400" />
-                </button>
+          {loading && !task && (
+            <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-[#13121F] border border-white/10">
+              <p className="text-sm text-gray-400">{t('generating')}…</p>
+              <div className="h-2.5 mt-3 w-full rounded-full bg-[#1C1B2B] overflow-hidden">
+                <div className="h-full w-1/3 rounded-full bg-indigo-500 animate-pulse" />
               </div>
-            </div>
-          </div>
-
-          {/* Task Progress */}
-          {task && (
-            <div className="w-full max-w-4xl mt-5 p-4 rounded-2xl bg-[#13121F] border border-white/10">
-              <div className="flex items-center gap-3 text-sm flex-wrap">
-                <span className="text-gray-400">{t('task')}:</span>{' '}
-                <span className="font-medium text-white">{task.type}</span>
-                <span className="text-gray-600">|</span>
-                <span className="text-gray-400">{t('status')}:</span>{' '}
-                <span
-                  className={`font-medium ${task.status === 'failed' ? 'text-red-400' : task.status === 'succeeded' ? 'text-green-400' : 'text-yellow-400'}`}
-                >
-                  {task.status}
-                </span>
-                <span className="text-gray-600">|</span>
-                <span className="text-gray-400">{t('progress')}:</span>{' '}
-                <span className="font-medium text-white">{task.progress}%</span>
-                <span className="text-gray-600">|</span>
-                <span className="text-gray-400">{t('step')}:</span>{' '}
-                <span className="font-medium text-white">{task.step || '-'}</span>
-              </div>
-              {task.error && (
-                <div className="text-red-400 text-sm mt-2">
-                  {t('error')}: {task.error}
-                </div>
-              )}
             </div>
           )}
+          {task && <GenerationProgress task={task} />}
 
           {/* Results Section */}
           <div className="w-full max-w-4xl mt-8">

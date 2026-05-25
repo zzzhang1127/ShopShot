@@ -3,10 +3,10 @@ import uuid
 from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from app.models import Shot, Asset, Video, VideoStatus, VideoRatio, VideoResolution
+from app.models import Shot, Asset, AssetType, Video, VideoStatus, VideoRatio, VideoResolution, TaskStatus
 from app.services.generation_service import GenerationService
 from app.services.video_service import VideoService
-from app.utils.ffmpeg_utils import concat_videos
+from app.utils.ffmpeg_utils import concat_videos, fit_video_duration
 from app.core.storage import STORAGE_ROOT
 
 
@@ -16,12 +16,18 @@ class PostProcessAgent:
         self.gen_service = GenerationService(db)
         self.video_service = VideoService(db)
 
-    def run(self, project_id: int, script_id: int, task_id: str = None) -> Video:
+    def run(
+        self,
+        project_id: int,
+        script_id: int,
+        task_id: str = None,
+        target_duration: int | None = None,
+    ) -> Video:
         from app.models import Project
         project = self.db.get(Project, project_id)
 
         if task_id:
-            self.gen_service.update_status(task_id, step="postprocess", progress=85)
+            self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="postprocess", progress=85)
 
         result = self.db.execute(
             select(Shot).where(Shot.script_id == script_id).order_by(Shot.sequence)
@@ -39,16 +45,35 @@ class PostProcessAgent:
             raise RuntimeError("No video segments available for concatenation")
 
         if task_id:
-            self.gen_service.update_status(task_id, step="postprocess", progress=90)
+            self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="postprocess", progress=90)
 
         output_name = f"final_{project_id}_{uuid.uuid4().hex[:8]}.mp4"
         output_path = str(STORAGE_ROOT / "videos" / output_name)
         concat_videos(video_paths, output_path)
 
+        if target_duration:
+            fitted_name = f"final_{project_id}_{uuid.uuid4().hex[:8]}_{target_duration}s.mp4"
+            fitted_path = str(STORAGE_ROOT / "videos" / fitted_name)
+            fit_video_duration(output_path, fitted_path, target_duration)
+            output_name = fitted_name
+            output_path = fitted_path
+
         if task_id:
-            self.gen_service.update_status(task_id, step="postprocess", progress=95)
+            self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="postprocess", progress=95)
 
         file_size = os.path.getsize(output_path)
+
+        asset = Asset(
+            project_id=project_id,
+            name=output_name,
+            type=AssetType.VIDEO,
+            url=f"videos/{output_name}",
+            size=file_size,
+            duration=target_duration,
+            source="generated",
+        )
+        self.db.add(asset)
+        self.db.flush()
 
         ratio = VideoRatio.R9_16
         resolution = VideoResolution.P720
@@ -65,14 +90,15 @@ class PostProcessAgent:
 
         video = self.video_service.create(
             project_id=project_id,
-            url=output_path,
+            url=f"videos/{output_name}",
             task_id=task_id,
             ratio=ratio,
             resolution=resolution,
+            duration=target_duration,
             file_size=file_size,
         )
 
         if task_id:
-            self.gen_service.update_status(task_id, step="postprocess", progress=100)
+            self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="postprocess", progress=100)
 
         return video

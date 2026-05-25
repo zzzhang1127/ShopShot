@@ -14,6 +14,10 @@ class SeedClient:
         self.model = settings.doubao_seed_ep
 
     def chat(self, messages, temperature=0.7, max_tokens=4096, response_format=None):
+        if settings.mock_mode:
+            raise RuntimeError(
+                "MOCK_MODE 已关闭：请在项目根目录 .env 设置 MOCK_MODE=false 并使用真实 Seed API"
+            )
         kwargs = {
             "model": self.model,
             "messages": messages,
