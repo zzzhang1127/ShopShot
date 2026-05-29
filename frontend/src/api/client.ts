@@ -54,6 +54,8 @@ export async function createProject(payload: {
   description?: string;
   product_info?: string;
   video_mode?: string;
+  target_ratio?: string;
+  target_resolution?: string;
 }) {
   const res = await client.post('/projects', payload);
   return res.data.data;
@@ -64,18 +66,141 @@ export async function updateProject(id: number, payload: Record<string, any>) {
   return res.data.data;
 }
 
-export async function uploadAsset(projectId: number, file: File) {
+export async function uploadAsset(projectId: number, file: File, source = 'upload') {
   const form = new FormData();
   form.append('file', file);
-  const res = await client.post(`/upload?project_id=${projectId}`, form, {
+  const res = await client.post(
+    `/upload?project_id=${projectId}&source=${encodeURIComponent(source)}`,
+    form,
+    {
     headers: { 'Content-Type': 'multipart/form-data' },
-  });
+    }
+  );
   return res.data.data;
 }
 
-export async function listAssets(projectId: number) {
-  const res = await client.get(`/assets?project_id=${projectId}`);
+export async function listAssets(projectId: number, opts?: { type?: string; source?: string }) {
+  const query = new URLSearchParams({ project_id: String(projectId) });
+  if (opts?.type) query.set('type', opts.type);
+  if (opts?.source) query.set('source', opts.source);
+  const res = await client.get(`/assets?${query.toString()}`);
   return res.data.data.items;
+}
+
+export async function getComfyHealth() {
+  const res = await client.get('/comfy/health');
+  return res.data.data as {
+    enabled: boolean;
+    configured: boolean;
+    reachable: boolean;
+    message: string;
+    editor_url: string;
+  };
+}
+
+export async function executeComfyPreset(payload: {
+  project_id: number;
+  workflow_path: string;
+  prompt?: string;
+  seed?: number;
+  output_kind?: 'auto' | 'image' | 'audio' | 'video';
+  source?: string;
+}) {
+  const res = await client.post('/comfy/execute-preset', payload);
+  return res.data.data as {
+    prompt_id: string;
+    asset_id: number;
+    asset_type: string;
+    asset_url: string;
+    source: string;
+  };
+}
+
+export async function executeComfyWorkflow(payload: {
+  project_id: number;
+  workflow: Record<string, any>;
+  output_kind?: 'auto' | 'image' | 'audio' | 'video';
+  filename?: string;
+  source?: string;
+}) {
+  const res = await client.post('/comfy/execute', payload);
+  return res.data.data as {
+    prompt_id: string;
+    asset_id: number;
+    asset_type: string;
+    asset_url: string;
+    source: string;
+  };
+}
+
+export async function listComfyWorkflows() {
+  const res = await client.get('/comfy/workflows');
+  return (res.data.data || []) as {
+    name: string;
+    path: string;
+    category: 'image' | 'video' | 'audio' | 'unknown';
+    display_name: string;
+  }[];
+}
+
+export async function listResourceWorkflows() {
+  const res = await client.get('/resources/workflows');
+  return (res.data.data || []) as {
+    id: string;
+    kind: string;
+    name: string;
+    path: string;
+    url: string;
+    source: string;
+  }[];
+}
+
+export async function listResourceTemplates() {
+  const res = await client.get('/resources/templates');
+  return (res.data.data || []) as {
+    id: string;
+    kind: string;
+    name: string;
+    path: string;
+    url: string;
+    source: string;
+  }[];
+}
+
+export async function listResourceBgm() {
+  const res = await client.get('/resources/bgm');
+  return (res.data.data || []) as {
+    id: string;
+    kind: string;
+    name: string;
+    path: string;
+    url: string;
+    source: string;
+  }[];
+}
+
+export async function listLibraryAssets(opts?: { limit?: number; type?: string; source?: string }) {
+  const q = new URLSearchParams();
+  if (opts?.limit) q.set('limit', String(opts.limit));
+  if (opts?.type) q.set('type', opts.type);
+  if (opts?.source) q.set('source', opts.source);
+  const res = await client.get(`/library/assets?${q.toString()}`);
+  return res.data.data.items;
+}
+
+export async function listLibraryScripts(limit = 50) {
+  const res = await client.get(`/library/scripts?limit=${limit}`);
+  return res.data.data.items;
+}
+
+export async function listLibraryVideos(limit = 50) {
+  const res = await client.get(`/library/videos?limit=${limit}`);
+  return res.data.data.items;
+}
+
+export async function getLibraryProjectsMap() {
+  const res = await client.get('/library/projects-map');
+  return res.data.data as Record<number, string>;
 }
 
 export async function listScripts(projectId: number) {
@@ -85,6 +210,11 @@ export async function listScripts(projectId: number) {
 
 export async function generateScript(projectId: number) {
   const res = await client.post('/scripts/generate', { project_id: projectId });
+  return res.data.data;
+}
+
+export async function deleteScript(scriptId: number) {
+  const res = await client.delete(`/scripts/${scriptId}`);
   return res.data.data;
 }
 
@@ -113,7 +243,15 @@ export async function runScriptAgent(projectId: number) {
   return res.data.data;
 }
 
-export async function runVideoAgent(projectId: number, payload?: Record<string, any>) {
+export async function runVideoAgent(
+  projectId: number,
+  payload?: Record<string, unknown> & {
+    script_id?: number;
+    pipeline_preset?: string;
+    target_ratio?: string;
+    duration?: number;
+  }
+) {
   const res = await client.post(`/agents/run/${projectId}/video`, payload || {});
   return res.data.data;
 }
@@ -134,4 +272,89 @@ export async function runQuickAgent(
 export async function getTaskStatus(taskId: string) {
   const res = await client.get(`/generations/${taskId}/status`);
   return res.data.data;
+}
+
+export async function cancelTask(taskId: string) {
+  const res = await client.post(`/generations/${taskId}/cancel`);
+  return res.data.data as { id: string; status: string };
+}
+
+export async function getTaskPayload(taskId: string) {
+  const res = await client.get(`/generations/${taskId}/payload`);
+  return res.data.data as {
+    id: string;
+    project_id?: number;
+    payload?: Record<string, unknown>;
+    result?: Record<string, unknown>;
+  };
+}
+
+export async function getComfyWorkflowContent(path: string) {
+  const res = await client.get(`/comfy/workflows/content?path=${encodeURIComponent(path)}`);
+  return res.data.data as Record<string, unknown>;
+}
+
+export async function importBgmFromLibrary(
+  projectId: number,
+  path: string,
+  sourceRoot = 'bgm'
+) {
+  const q = new URLSearchParams({
+    project_id: String(projectId),
+    path,
+    source_root: sourceRoot,
+  });
+  const res = await client.post(`/import-bgm?${q.toString()}`);
+  return res.data.data;
+}
+
+export async function enhancePrompt(text: string, opts?: { mode?: string; product_context?: string }) {
+  const res = await client.post('/agents/enhance-prompt', {
+    text,
+    mode: opts?.mode || 'i2v',
+    product_context: opts?.product_context || '',
+  });
+  return res.data.data as { original: string; enhanced: string; mode: string };
+}
+
+export async function getAgentCapabilities() {
+  const res = await client.get('/agents/capabilities');
+  return res.data.data as {
+    wan_prompt_enhance: boolean;
+    wan_image: boolean;
+    wan_video: boolean;
+    seedance: boolean;
+    comfyui: boolean;
+  };
+}
+
+export async function listPixellePipelines() {
+  const res = await client.get('/pixelle/pipelines');
+  return res.data.data as {
+    pipelines: Array<{
+      id: string;
+      pixelle_key: string;
+      name: string;
+      description: string;
+      media_tab: string;
+      shopshot_mode: string;
+      requires_comfy: boolean;
+      requires_upload: boolean;
+      available: boolean;
+    }>;
+    comfyui_enabled: boolean;
+    features: Record<string, boolean>;
+  };
+}
+
+export async function listModelCapabilities() {
+  const res = await client.get('/resources/models');
+  return (res.data.data || []) as {
+    id: string;
+    name: string;
+    role: string;
+    configured: boolean;
+    endpoint_hint: string;
+    notes: string;
+  }[];
 }

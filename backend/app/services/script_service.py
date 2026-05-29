@@ -41,3 +41,12 @@ class ScriptService:
             select(Shot).where(Shot.script_id == script_id).order_by(Shot.sequence)
         )
         return result.scalars().all()
+
+    def delete(self, script_id: int) -> None:
+        script = self.get(script_id)
+        if not script:
+            raise ShopShotException(404, "Script not found")
+        for shot in self.get_shots(script_id):
+            self.db.delete(shot)
+        self.db.delete(script)
+        self.db.commit()

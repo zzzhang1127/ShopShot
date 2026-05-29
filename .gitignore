@@ -4,8 +4,9 @@ backend/.env
 frontend/.env
 frontend/.env.*
 
-# 参考仓库：火山 ai-app-lab 体积大，不推送
-projects/ai-app-lab/
+# 参考仓库体积大，不纳入主仓库；仅追踪 projects/README.md，请用户自行 clone
+projects/*
+!projects/README.md
 
 # 本地自动化（个人环境）
 auto_enter.py
@@ -25,7 +26,14 @@ venv/
 logs/
 err.log
 out.log
+backend.log
+backend_start.log
 backend/e2e_server*.log
+backend/out.txt
+backend/out2.txt
+backend/thread_test_out.txt
+backend/server_out.log
+backend/uvicorn*.log
 
 # 数据库
 *.db
@@ -33,6 +41,10 @@ backend/shopshot.db
 
 # AI 生成与上传产物
 outputs/
+outputs/**
+
+# API 联调结果（历史误提交，勿再追踪）
+outputs/api_results/
 
 # FFmpeg / 测试临时文本（非源码；requirements.txt 等仍提交）
 *.concat_list.txt
@@ -49,9 +61,12 @@ test_outputs/
 !datasets/eval/
 !datasets/eval/**
 
-# 前端构建
+# 前端构建与工具缓存
 frontend/dist/
 frontend/node_modules/
+frontend/node_modules/.tmp/
+**/.tmp/
+**/*.tsbuildinfo
 
 # IDE / OS
 .idea/

@@ -50,6 +50,7 @@ function helperText(task: GenerationTask): string {
     return t('progressFailedHint');
   }
   if (status === 'succeeded') return t('progressSucceededHint');
+  if (status === 'cancelled') return t('taskCancelled');
   const step = task.step || '';
   if (step.includes('script')) return t('progressScriptHint');
   if (step.includes('rate_limit')) return t('progressRateLimitRetryHint');
@@ -58,7 +59,15 @@ function helperText(task: GenerationTask): string {
   return t('progressBusyHint');
 }
 
-export default function GenerationProgress({ task }: { task: GenerationTask }) {
+export default function GenerationProgress({
+  task,
+  onCancel,
+  cancelling,
+}: {
+  task: GenerationTask;
+  onCancel?: () => void;
+  cancelling?: boolean;
+}) {
   const pct = Math.min(100, Math.max(0, task.progress ?? 0));
   const status = task.status.toLowerCase();
   const running = status === 'running' || status === 'queued';
@@ -67,13 +76,27 @@ export default function GenerationProgress({ task }: { task: GenerationTask }) {
       ? t('generateSuccess')
       : status === 'failed'
         ? t('generateFailed')
-        : t('generating');
+        : status === 'cancelled'
+          ? t('taskCancelled')
+          : t('generating');
 
   return (
     <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-[#13121F] border border-indigo-500/30 shadow-lg shadow-indigo-500/10">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-2">
         <span className="text-sm font-semibold text-white">{title}</span>
-        <span className="text-sm font-bold text-indigo-400">{pct}%</span>
+        <div className="flex items-center gap-2">
+          {running && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={cancelling}
+              className="text-xs px-2.5 py-1 rounded-lg border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-40"
+            >
+              {cancelling ? t('running') : t('cancelTask')}
+            </button>
+          )}
+          <span className="text-sm font-bold text-indigo-400">{pct}%</span>
+        </div>
       </div>
       <div className="h-2.5 w-full rounded-full bg-[#1C1B2B] overflow-hidden mb-3">
         <div

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 from app.models import VideoRatio, VideoResolution, VideoStatus
 
 
@@ -21,6 +22,7 @@ class VideoRead(BaseModel):
     file_size: Optional[int] = None
     status: VideoStatus
     factors: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

@@ -24,8 +24,17 @@ class Settings(BaseSettings):
 
     # Feature flags
     image_generation_enabled: bool = False
+    tts_generation_enabled: bool = False
     seedream_api_key: str = ""
     mock_mode: bool = False  # 必须为 false，走真实火山 API
+
+    # Optional ComfyUI integration（不影响主链路）
+    comfyui_enabled: bool = False
+    comfyui_url: str = ""
+    comfyui_api_key: str = ""
+    comfyui_poll_interval: float = 1.5
+    comfyui_timeout_seconds: int = 300
+    comfyui_workflows_dir: str = "workflows"
 
     # Storage
     storage_type: str = "local"  # local or tos
@@ -42,6 +51,16 @@ class Settings(BaseSettings):
     seedance_default_resolution: str = "720p"
     seedance_default_fps: int = 24
     seedance_watermark: bool = False
+
+    # Alibaba DashScope / Wan (Wan-skills + Wan2.2)
+    dashscope_api_key: str = ""
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/api/v1/"
+    wan_prompt_enhance_enabled: bool = True
+    wan_image_enabled: bool = False
+    wan_image_model: str = "wan2.7-image"
+    wan_video_enabled: bool = False
+    wan_video_model: str = "wan2.1-i2v-plus"
+    wan_auto_reference_images: bool = True
 
     model_config = SettingsConfigDict(
         env_file=str(_ENV_FILE) if _ENV_FILE.is_file() else None,

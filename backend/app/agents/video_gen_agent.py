@@ -2,14 +2,17 @@ from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.models import Shot, ShotStatus, Asset, AssetType, TaskStatus
-from app.services.generation_service import GenerationService
+from app.services.generation_service import GenerationService, TaskCancelledError
 from app.utils.seedance_client import get_seedance_client
+from app.utils.wan_video_client import WanVideoError, get_wan_video_client
+from app.agents.prompt_agent import PromptAgent
 from app.utils.media_url import local_asset_to_image_url
 from app.core.storage import save_upload, STORAGE_ROOT
 from app.config import get_settings
 from app.utils.video_download import download_video_from_url
 from app.utils.ffmpeg_utils import extract_last_frame
 from pathlib import Path
+from PIL import Image
 
 settings = get_settings()
 
@@ -18,6 +21,8 @@ class VideoGenAgent:
     def __init__(self, db: Session):
         self.db = db
         self.seedance = get_seedance_client()
+        self.wan_video = get_wan_video_client()
+        self.prompt_agent = PromptAgent()
         self.gen_service = GenerationService(db)
 
     def run(
@@ -39,10 +44,12 @@ class VideoGenAgent:
             self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="video_generate", progress=10)
 
         # Seedance 单镜头生成通常更适合 5 秒以上；总时长由后处理统一压缩/修剪。
-        per_shot_duration = max(5, int((total_duration or 15) / max(len(shots), 1)))
+        per_shot_duration = max(5, int((total_duration or 20) / max(len(shots), 1)))
         total = max(len(shots), 1)
         previous_tail_asset_id = None
         for idx, shot in enumerate(shots):
+            if task_id:
+                self.gen_service.raise_if_cancelled(task_id)
             if previous_tail_asset_id and not shot.reference_asset_id:
                 shot.reference_asset_id = previous_tail_asset_id
             shot.duration = per_shot_duration
@@ -94,6 +101,16 @@ class VideoGenAgent:
         image_prompt = (shot.image_prompt or "").strip()
         action_prompt = (shot.action_prompt or "").strip()
         words = (shot.words or "").strip()
+        has_ref = bool(shot.reference_asset_id)
+        if self.prompt_agent.enabled:
+            image_prompt, action_prompt = self.prompt_agent.enhance_shot_prompts(
+                image_prompt=image_prompt,
+                action_prompt=action_prompt,
+                words=words,
+                product_info=product_info,
+                shot_index=shot_index,
+                has_reference=has_ref,
+            )
 
         stage_names = ["Attention hook", "Interest scene", "Desire close-up", "Call-to-action ending"]
         stage = stage_names[shot_index] if shot_index < len(stage_names) else f"Shot {shot_index + 1}"
@@ -118,7 +135,7 @@ class VideoGenAgent:
 
             if shot.reference_asset_id:
                 asset = self.db.get(Asset, shot.reference_asset_id)
-                if asset:
+                if asset and self._is_reference_asset_valid(asset):
                     first_frame = local_asset_to_image_url(asset.url)
 
             if not first_frame and shot.project_id and shot_index == 0:
@@ -130,7 +147,7 @@ class VideoGenAgent:
                     )
                 )
                 img = result.scalars().first()
-                if img:
+                if img and self._is_reference_asset_valid(img):
                     first_frame = local_asset_to_image_url(img.url)
 
             prompt = self._build_seedance_prompt(shot, project, shot_index, total_shots)
@@ -140,7 +157,7 @@ class VideoGenAgent:
             ratio = project.target_ratio if project else None
             resolution = project.target_resolution if project else None
 
-            video_url = self.seedance.generate(
+            video_url = self._generate_with_first_frame_fallback(
                 prompt=prompt,
                 first_frame=first_frame,
                 duration=shot.duration,
@@ -183,9 +200,73 @@ class VideoGenAgent:
             shot.last_frame_asset_id = last_asset.id
             self._update_shot_status(shot, ShotStatus.VIDEO_COMPLETED)
 
-        except Exception as e:
+        except Exception:
             self._update_shot_status(shot, ShotStatus.VIDEO_FAILED)
             raise
+
+    def _generate_with_first_frame_fallback(
+        self,
+        *,
+        prompt: str,
+        first_frame: str | None,
+        duration: int,
+        ratio: str | None,
+        resolution: str | None,
+        on_poll=None,
+    ) -> str:
+        try:
+            return self.seedance.generate(
+                prompt=prompt,
+                first_frame=first_frame,
+                duration=duration,
+                ratio=ratio,
+                resolution=resolution,
+                on_poll=on_poll,
+            )
+        except Exception as exc:
+            if first_frame and self._should_retry_without_first_frame(exc):
+                try:
+                    return self.seedance.generate(
+                        prompt=prompt,
+                        first_frame=None,
+                        duration=duration,
+                        ratio=ratio,
+                        resolution=resolution,
+                        on_poll=on_poll,
+                    )
+                except Exception:
+                    pass
+            if first_frame and self.wan_video.configured:
+                try:
+                    api_duration = 10 if duration > 10 else max(5, duration)
+                    return self.wan_video.generate_i2v(
+                        prompt=prompt,
+                        image_url=first_frame,
+                        duration=api_duration,
+                    )
+                except WanVideoError:
+                    pass
+            raise exc
+
+    @staticmethod
+    def _should_retry_without_first_frame(exc: Exception) -> bool:
+        msg = str(exc).lower()
+        return (
+            "expected the width to be at least 300px" in msg
+            or "image_url" in msg and "invalidparameter" in msg
+        )
+
+    @staticmethod
+    def _is_reference_asset_valid(asset: Asset) -> bool:
+        try:
+            p = STORAGE_ROOT / asset.url
+            if not p.exists():
+                return False
+            with Image.open(p) as img:
+                w, h = img.size
+            return w >= 300 and h >= 300
+        except Exception:
+            return False
 
     def _update_shot_status(self, shot: Shot, status: ShotStatus):
         shot.status = status

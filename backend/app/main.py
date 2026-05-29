@@ -14,7 +14,7 @@ from app.core.exceptions import (
     shopshot_exception_handler,
     generic_exception_handler,
 )
-from app.api.v1 import assets, scripts, shots, generations, videos, agents, projects
+from app.api.v1 import assets, scripts, shots, generations, videos, agents, projects, comfy, resources, library, pixelle
 
 settings = get_settings()
 
@@ -28,6 +28,8 @@ def _health_payload():
         "status": "ok",
         "mock_mode": settings.mock_mode,
         "seedance_ep_configured": bool(settings.doubao_seedance_ep),
+        "comfyui_enabled": settings.comfyui_enabled,
+        "comfyui_configured": bool(settings.comfyui_url),
         "volc_api_key_configured": bool(settings.volc_api_key),
         "storage": str(STORAGE_ROOT),
     }
@@ -61,6 +63,10 @@ app.include_router(generations.router, prefix="/api/v1", tags=["Generations"])
 app.include_router(videos.router, prefix="/api/v1", tags=["Videos"])
 app.include_router(agents.router, prefix="/api/v1", tags=["Agents"])
 app.include_router(projects.router, prefix="/api/v1", tags=["Projects"])
+app.include_router(comfy.router, prefix="/api/v1", tags=["ComfyUI"])
+app.include_router(resources.router, prefix="/api/v1", tags=["Resources"])
+app.include_router(library.router, prefix="/api/v1", tags=["Library"])
+app.include_router(pixelle.router, prefix="/api/v1", tags=["Pixelle"])
 
 
 @app.get("/api/v1/health")

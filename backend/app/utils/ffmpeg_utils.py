@@ -1,5 +1,6 @@
 import subprocess
 import os
+import shutil
 from pathlib import Path
 from app.core.storage import STORAGE_ROOT
 
@@ -103,6 +104,75 @@ def fit_video_duration(input_path: str, output_path: str, target_duration: int) 
         check=True,
         capture_output=True,
     )
+    return output_path
+
+
+def add_bgm(input_video_path: str, bgm_path: str, output_path: str, bgm_volume: float = 0.25) -> str:
+    """Mix looped BGM into video, preserving original voice track if present."""
+    video_path = Path(input_video_path)
+    if not video_path.is_absolute():
+        video_path = STORAGE_ROOT / input_video_path
+
+    audio_path = Path(bgm_path)
+    if not audio_path.is_absolute():
+        audio_path = STORAGE_ROOT / bgm_path
+
+    cmd_mix = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(video_path),
+        "-stream_loop",
+        "-1",
+        "-i",
+        str(audio_path),
+        "-filter_complex",
+        f"[1:a]volume={bgm_volume}[bgm];[0:a][bgm]amix=inputs=2:duration=first:dropout_transition=2[mix]",
+        "-map",
+        "0:v:0",
+        "-map",
+        "[mix]",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-shortest",
+        output_path,
+    ]
+    try:
+        subprocess.run(cmd_mix, check=True, capture_output=True)
+    except subprocess.CalledProcessError:
+        # fallback: source video may not contain audio track
+        try:
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(video_path),
+                    "-stream_loop",
+                    "-1",
+                    "-i",
+                    str(audio_path),
+                    "-filter:a",
+                    f"volume={bgm_volume}",
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "1:a:0",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-shortest",
+                    output_path,
+                ],
+                check=True,
+                capture_output=True,
+            )
+        except subprocess.CalledProcessError:
+            # Keep generation successful even if BGM file itself is invalid.
+            shutil.copy2(video_path, output_path)
     return output_path
 
 

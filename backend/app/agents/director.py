@@ -2,16 +2,43 @@ import json
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.models import Project, TaskStatus, TaskType, Asset
-from app.services.generation_service import GenerationService
+from app.services.generation_service import GenerationService, TaskCancelledError
+from app.config import get_settings
 from app.agents.script_agent import ScriptAgent
 from app.agents.video_gen_agent import VideoGenAgent
 from app.agents.postprocess_agent import PostProcessAgent
+from app.agents.visual_agent import VisualAgent
+
+settings = get_settings()
 
 
 class DirectorAgent:
     def __init__(self, db: Session):
         self.db = db
         self.gen_service = GenerationService(db)
+
+    def _wan_prepare_shots(
+        self,
+        task_id: str,
+        project_id: int,
+        script_id: int,
+        project: Project,
+    ) -> None:
+        if not (settings.wan_image_enabled and settings.wan_auto_reference_images):
+            return
+
+        def _wan_progress(idx: int, total: int, step: str):
+            p = 6 + int((idx / max(total, 1)) * 4)
+            self.gen_service.update_status(task_id, TaskStatus.RUNNING, step=step, progress=p)
+
+        VisualAgent(self.db).prepare_shot_references(
+            project_id=project_id,
+            script_id=script_id,
+            product_info=project.product_info or project.name,
+            target_ratio=project.target_ratio or "9:16",
+            task_id=task_id,
+            on_progress=_wan_progress,
+        )
 
     def start_script_only(self, project_id: int) -> str:
         task = self.gen_service.create_task(
@@ -25,6 +52,7 @@ class DirectorAgent:
 
     def execute_script_only(self, task_id: str, project_id: int) -> None:
         try:
+            self.gen_service.raise_if_cancelled(task_id)
             self.gen_service.update_status(
                 task_id, TaskStatus.RUNNING, step="script_llm", progress=5
             )
@@ -40,6 +68,7 @@ class DirectorAgent:
             )
             references = [a.url for a in result.scalars().all()]
 
+            self.gen_service.raise_if_cancelled(task_id)
             self.gen_service.update_status(
                 task_id, TaskStatus.RUNNING, step="script_llm", progress=15
             )
@@ -61,6 +90,8 @@ class DirectorAgent:
             )
             project.status = "draft"
             self.db.commit()
+        except TaskCancelledError:
+            self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
             raise
@@ -70,15 +101,26 @@ class DirectorAgent:
         self.execute_script_only(task_id, project_id)
         return task_id
 
-    def start_video_only(self, project_id: int, script_id: int, duration: int | None = None) -> str:
+    def start_video_only(
+        self,
+        project_id: int,
+        script_id: int,
+        duration: int | None = None,
+        extra: dict | None = None,
+    ) -> str:
+        payload: dict = {
+            "project_id": project_id,
+            "script_id": script_id,
+            "duration": duration or 20,
+        }
+        if extra:
+            payload.update(extra)
         task = self.gen_service.create_task(
             project_id=project_id,
             task_type=TaskType.VIDEO,
             agent_name="video_gen_agent",
             step="queued",
-            payload=json.dumps(
-                {"project_id": project_id, "script_id": script_id, "duration": duration or 15}
-            ),
+            payload=json.dumps(payload),
         )
         return task.id
 
@@ -86,9 +128,17 @@ class DirectorAgent:
         self, task_id: str, project_id: int, script_id: int, duration: int | None = None
     ) -> None:
         try:
-            duration = duration or 15
+            duration = duration or 20
+            self.gen_service.raise_if_cancelled(task_id)
+            project = self.db.get(Project, project_id)
+            if project:
+                self.gen_service.update_status(
+                    task_id, TaskStatus.RUNNING, step="wan_visual_prepare", progress=6
+                )
+                self._wan_prepare_shots(task_id, project_id, script_id, project)
+            self.gen_service.raise_if_cancelled(task_id)
             self.gen_service.update_status(
-                task_id, TaskStatus.RUNNING, step="video_generate", progress=5
+                task_id, TaskStatus.RUNNING, step="video_generate", progress=10
             )
             video_agent = VideoGenAgent(self.db)
             video_agent.run(
@@ -101,6 +151,7 @@ class DirectorAgent:
                 task_id, TaskStatus.RUNNING, step="postprocess", progress=88
             )
             post_agent = PostProcessAgent(self.db)
+            self.gen_service.raise_if_cancelled(task_id)
             video = post_agent.run(
                 project_id=project_id,
                 script_id=script_id,
@@ -114,6 +165,8 @@ class DirectorAgent:
                 step="done",
                 result=json.dumps({"video_id": video.id, "video_url": video.url}),
             )
+        except TaskCancelledError:
+            self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
             raise
@@ -134,7 +187,7 @@ class DirectorAgent:
                     "project_id": project_id,
                     "mode": "quick",
                     "prompt": prompt,
-                    "duration": duration or 15,
+                    "duration": duration or 20,
                 }
             ),
         )
@@ -158,7 +211,8 @@ class DirectorAgent:
         import uuid
 
         try:
-            duration = duration or 15
+            duration = duration or 20
+            self.gen_service.raise_if_cancelled(task_id)
             project = self.db.get(Project, project_id)
             if not project:
                 raise ValueError(f"Project {project_id} not found")
@@ -196,6 +250,7 @@ class DirectorAgent:
                 resolution=project.target_resolution if project else None,
                 on_poll=on_poll,
             )
+            self.gen_service.raise_if_cancelled(task_id)
             self.gen_service.update_status(
                 task_id, TaskStatus.RUNNING, step="download", progress=90
             )
@@ -246,6 +301,8 @@ class DirectorAgent:
                 step="done",
                 result=json.dumps({"video_id": video.id, "video_url": video.url}),
             )
+        except TaskCancelledError:
+            self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
             raise
@@ -261,19 +318,23 @@ class DirectorAgent:
         self.execute_quick(task_id, project_id, prompt, first_frame, duration)
         return task_id
 
-    def start_full(self, project_id: int) -> str:
+    def start_full(self, project_id: int, extra: dict | None = None) -> str:
+        payload: dict = {"project_id": project_id, "mode": "full"}
+        if extra:
+            payload.update(extra)
         task = self.gen_service.create_task(
             project_id=project_id,
             task_type=TaskType.SCRIPT,
             agent_name="director",
             step="queued",
-            payload=json.dumps({"project_id": project_id}),
+            payload=json.dumps(payload),
         )
         return task.id
 
     def execute_full(self, task_id: str, project_id: int, duration: int | None = None) -> None:
         try:
-            duration = duration or 15
+            duration = duration or 20
+            self.gen_service.raise_if_cancelled(task_id)
             project = self.db.get(Project, project_id)
             if not project:
                 raise ValueError(f"Project {project_id} not found")
@@ -296,6 +357,11 @@ class DirectorAgent:
             self.gen_service.update_status(
                 task_id, TaskStatus.RUNNING, step="script_done", progress=20
             )
+            self.gen_service.raise_if_cancelled(task_id)
+            self.gen_service.update_status(
+                task_id, TaskStatus.RUNNING, step="wan_visual_prepare", progress=22
+            )
+            self._wan_prepare_shots(task_id, project_id, script.id, project)
 
             video_agent = VideoGenAgent(self.db)
             video_agent.run(
@@ -308,6 +374,7 @@ class DirectorAgent:
             self.gen_service.update_status(
                 task_id, TaskStatus.RUNNING, step="postprocess", progress=88
             )
+            self.gen_service.raise_if_cancelled(task_id)
             post_agent = PostProcessAgent(self.db)
             video = post_agent.run(
                 project_id=project_id,
@@ -322,11 +389,18 @@ class DirectorAgent:
                 progress=100,
                 step="done",
                 result=json.dumps(
-                    {"script_id": script.id, "video_id": video.id, "video_url": video.url}
+                    {
+                        "script_id": script.id,
+                        "video_id": video.id,
+                        "video_url": video.url,
+                        "duration": duration,
+                    }
                 ),
             )
             project.status = "completed"
             self.db.commit()
+        except TaskCancelledError:
+            self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
             raise

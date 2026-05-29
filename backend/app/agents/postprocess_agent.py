@@ -6,7 +6,7 @@ from sqlalchemy import select
 from app.models import Shot, Asset, AssetType, Video, VideoStatus, VideoRatio, VideoResolution, TaskStatus
 from app.services.generation_service import GenerationService
 from app.services.video_service import VideoService
-from app.utils.ffmpeg_utils import concat_videos, fit_video_duration
+from app.utils.ffmpeg_utils import concat_videos, fit_video_duration, add_bgm
 from app.core.storage import STORAGE_ROOT
 
 
@@ -57,6 +57,28 @@ class PostProcessAgent:
             fit_video_duration(output_path, fitted_path, target_duration)
             output_name = fitted_name
             output_path = fitted_path
+
+        # Optional: automatically mix latest uploaded BGM (source=bgm)
+        bgm_result = self.db.execute(
+            select(Asset)
+            .where(
+                Asset.project_id == project_id,
+                Asset.type == AssetType.AUDIO,
+                Asset.source == "bgm",
+            )
+            .order_by(Asset.id.desc())
+        )
+        latest_bgm = bgm_result.scalars().first()
+        if latest_bgm:
+            mixed_name = f"final_{project_id}_{uuid.uuid4().hex[:8]}_bgm.mp4"
+            mixed_path = str(STORAGE_ROOT / "videos" / mixed_name)
+            try:
+                add_bgm(output_path, latest_bgm.url, mixed_path, bgm_volume=0.22)
+                output_name = mixed_name
+                output_path = mixed_path
+            except Exception:
+                # Invalid or unsupported BGM should not fail the whole generation.
+                pass
 
         if task_id:
             self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="postprocess", progress=95)

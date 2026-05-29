@@ -56,9 +56,39 @@ class TaskCancelRead(BaseModel):
         from_attributes = True
 
 
+class TaskPayloadRead(BaseModel):
+    id: str
+    project_id: Optional[int] = None
+    type: TaskType
+    status: TaskStatus
+    payload: Optional[dict] = None
+    result: Optional[dict] = None
+
+
+class PromptEnhanceRequest(BaseModel):
+    text: str
+    mode: str = "i2v"
+    product_context: str = ""
+
+
+class PromptEnhanceRead(BaseModel):
+    original: str
+    enhanced: str
+    mode: str
+
+
+class AgentCapabilitiesRead(BaseModel):
+    wan_prompt_enhance: bool
+    wan_image: bool
+    wan_video: bool
+    seedance: bool
+    comfyui: bool
+
+
 class AgentRunRequest(BaseModel):
     project_id: int
     workflow: str = "full"  # full / script / video / postprocess
+    pipeline_preset: Optional[str] = None
     target_ratio: Optional[str] = None
     target_resolution: Optional[str] = None
     duration: Optional[int] = None
@@ -68,12 +98,15 @@ class QuickGenerateRequest(BaseModel):
     project_id: int
     prompt: str
     first_frame: Optional[str] = None
+    pipeline_preset: Optional[str] = None
     target_ratio: Optional[str] = None
     target_resolution: Optional[str] = None
-    duration: Optional[int] = 15
+    duration: Optional[int] = 20
 
 
 class VideoGenerateRequest(BaseModel):
+    script_id: Optional[int] = None
+    pipeline_preset: Optional[str] = None
     target_ratio: Optional[str] = None
     target_resolution: Optional[str] = None
-    duration: Optional[int] = 15
+    duration: Optional[int] = 20

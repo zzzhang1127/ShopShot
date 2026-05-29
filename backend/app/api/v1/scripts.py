@@ -37,6 +37,16 @@ def list_scripts(
     return ApiResponse(data=[ScriptRead.model_validate(s) for s in items])
 
 
+@router.delete("/scripts/{script_id}", response_model=ApiResponse[dict])
+def delete_script(
+    script_id: int,
+    db: Session = Depends(get_db),
+):
+    svc = ScriptService(db)
+    svc.delete(script_id)
+    return ApiResponse(data={"deleted": True, "script_id": script_id})
+
+
 @router.put("/scripts/{script_id}", response_model=ApiResponse[ScriptRead])
 def update_script(
     script_id: int,

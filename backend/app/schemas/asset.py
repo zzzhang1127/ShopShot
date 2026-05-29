@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 from app.models import AssetType
 
 
@@ -23,6 +24,7 @@ class AssetRead(BaseModel):
     analysis: Optional[str] = None
     source: Optional[str] = None
     project_id: Optional[int] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

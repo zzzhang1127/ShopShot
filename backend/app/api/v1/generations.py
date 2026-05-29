@@ -1,12 +1,31 @@
+import json
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.exceptions import ShopShotException
 from app.schemas.common import ApiResponse
-from app.schemas.generation import GenerationTaskRead, TaskStatusRead, TaskResultRead
+from app.schemas.generation import (
+    GenerationTaskRead,
+    TaskStatusRead,
+    TaskResultRead,
+    TaskCancelRead,
+    TaskPayloadRead,
+)
 from app.services.generation_service import GenerationService
 
 router = APIRouter()
+
+
+def _parse_json_field(raw: str | None) -> dict | None:
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {"value": data}
+    except json.JSONDecodeError:
+        return {"raw": raw}
 
 
 @router.get("/generations/{task_id}/status", response_model=ApiResponse[TaskStatusRead])
@@ -27,3 +46,29 @@ def get_task_result(
     svc = GenerationService(db)
     task = svc.get(task_id)
     return ApiResponse(data=TaskResultRead.model_validate(task))
+
+
+@router.post("/generations/{task_id}/cancel", response_model=ApiResponse[TaskCancelRead])
+def cancel_generation_task(task_id: str, db: Session = Depends(get_db)):
+    svc = GenerationService(db)
+    task = svc.cancel_task(task_id)
+    return ApiResponse(data=TaskCancelRead(id=task.id, status=task.status))
+
+
+@router.get("/generations/{task_id}/payload", response_model=ApiResponse[TaskPayloadRead])
+def get_task_payload(task_id: str, db: Session = Depends(get_db)):
+    """Pixelle-style duplicate: return saved run parameters for replay."""
+    svc = GenerationService(db)
+    task = svc.get(task_id)
+    if not task:
+        raise ShopShotException(404, "Task not found")
+    return ApiResponse(
+        data=TaskPayloadRead(
+            id=task.id,
+            project_id=task.project_id,
+            type=task.type,
+            status=task.status,
+            payload=_parse_json_field(task.payload),
+            result=_parse_json_field(task.result),
+        )
+    )

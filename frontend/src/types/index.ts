@@ -18,6 +18,9 @@ export interface Asset {
   name: string;
   type: string;
   url: string;
+  source?: string;
+  mime_type?: string;
+  duration?: number;
   project_id?: number;
   created_at?: string;
 }
@@ -44,6 +47,8 @@ export interface Shot {
   words?: string;
   duration: number;
   sequence: number;
+  reference_asset_id?: number;
+  generated_image_asset_id?: number;
   generated_video_asset_id?: number;
 }
 

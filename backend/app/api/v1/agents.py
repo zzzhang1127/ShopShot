@@ -6,10 +6,14 @@ from app.core.database import get_db
 from app.schemas.common import ApiResponse
 from app.schemas.generation import (
     AgentRunRequest,
+    AgentCapabilitiesRead,
     QuickGenerateRequest,
     VideoGenerateRequest,
     GenerationTaskRead,
+    PromptEnhanceRequest,
+    PromptEnhanceRead,
 )
+from app.config import get_settings
 from app.agents.director import DirectorAgent
 from app.services.generation_service import GenerationService
 from app.workers.background_jobs import (
@@ -20,6 +24,78 @@ from app.workers.background_jobs import (
 )
 
 router = APIRouter()
+settings = get_settings()
+
+
+@router.get("/agents/capabilities", response_model=ApiResponse[AgentCapabilitiesRead])
+def agent_capabilities():
+    return ApiResponse(
+        data=AgentCapabilitiesRead(
+            wan_prompt_enhance=settings.wan_prompt_enhance_enabled and bool(settings.volc_api_key),
+            wan_image=settings.wan_image_enabled and bool(settings.dashscope_api_key),
+            wan_video=settings.wan_video_enabled and bool(settings.dashscope_api_key),
+            seedance=bool(settings.volc_api_key and settings.doubao_seedance_ep),
+            comfyui=settings.comfyui_enabled,
+        )
+    )
+
+
+@router.post("/agents/enhance-prompt", response_model=ApiResponse[PromptEnhanceRead])
+def enhance_prompt(body: PromptEnhanceRequest):
+    from app.agents.prompt_agent import PromptAgent
+
+    agent = PromptAgent()
+    enhanced = agent.enhance_text(
+        body.text,
+        mode=body.mode if body.mode in ("i2v", "t2v") else "i2v",
+        product_context=body.product_context,
+    )
+    return ApiResponse(
+        data=PromptEnhanceRead(
+            original=body.text,
+            enhanced=enhanced,
+            mode=body.mode,
+        )
+    )
+
+
+def _apply_asset_based_mapping(db: Session, project_id: int, script_id: int) -> None:
+    """Server-side fallback mapping for asset_based pipeline preset."""
+    from app.models import Asset, AssetType, Shot
+
+    image_assets = (
+        db.execute(
+            select(Asset)
+            .where(
+                Asset.project_id == project_id,
+                Asset.type == AssetType.IMAGE,
+                Asset.source == "upload",
+            )
+            .order_by(Asset.id.asc())
+        )
+        .scalars()
+        .all()
+    )
+    if not image_assets:
+        return
+
+    shots = (
+        db.execute(select(Shot).where(Shot.script_id == script_id).order_by(Shot.sequence.asc(), Shot.id.asc()))
+        .scalars()
+        .all()
+    )
+    if not shots:
+        return
+
+    changed = False
+    for idx, shot in enumerate(shots):
+        mapped = image_assets[idx % len(image_assets)]
+        if shot.reference_asset_id != mapped.id:
+            shot.reference_asset_id = mapped.id
+            changed = True
+
+    if changed:
+        db.commit()
 
 
 def _task_response(db: Session, task_id: str) -> ApiResponse[GenerationTaskRead]:
@@ -45,8 +121,14 @@ def run_agent_workflow(
         db.commit()
 
     agent = DirectorAgent(db)
-    task_id = agent.start_full(body.project_id)
-    background_tasks.add_task(job_execute_full, task_id, body.project_id, body.duration or 15)
+    duration = body.duration or 20
+    extra: dict = {"duration": duration}
+    if body.pipeline_preset:
+        extra["pipeline_preset"] = body.pipeline_preset
+    if body.target_ratio:
+        extra["target_ratio"] = body.target_ratio
+    task_id = agent.start_full(body.project_id, extra=extra)
+    background_tasks.add_task(job_execute_full, task_id, body.project_id, duration)
     return _task_response(db, task_id)
 
 
@@ -72,27 +154,46 @@ def run_video_agent(
     from app.models import Script
     from app.core.exceptions import ShopShotException
 
-    result = db.execute(
-        select(Script).where(Script.project_id == project_id).order_by(Script.id.desc()).limit(1)
-    )
-    script = result.scalar_one_or_none()
+    script = None
+    if body and body.script_id:
+        script = db.get(Script, body.script_id)
+        if not script or script.project_id != project_id:
+            raise ShopShotException(400, "Script not found for this project")
+    if not script:
+        result = db.execute(
+            select(Script)
+            .where(Script.project_id == project_id)
+            .order_by(Script.id.desc())
+            .limit(1)
+        )
+        script = result.scalar_one_or_none()
     if not script:
         raise ShopShotException(400, "No script found for project")
 
-    duration = body.duration if body and body.duration else 15
+    duration = body.duration if body and body.duration else 20
     if body:
         from app.models import Project
 
         project = db.get(Project, project_id)
         if project:
+            if body.pipeline_preset:
+                project.video_mode = body.pipeline_preset
             if body.target_ratio:
                 project.target_ratio = body.target_ratio
             if body.target_resolution:
                 project.target_resolution = body.target_resolution
             db.commit()
+        if body.pipeline_preset == "asset_based":
+            _apply_asset_based_mapping(db, project_id, script.id)
 
+    extra: dict = {"duration": duration}
+    if body:
+        if body.pipeline_preset:
+            extra["pipeline_preset"] = body.pipeline_preset
+        if body.target_ratio:
+            extra["target_ratio"] = body.target_ratio
     agent = DirectorAgent(db)
-    task_id = agent.start_video_only(project_id, script.id, duration)
+    task_id = agent.start_video_only(project_id, script.id, duration, extra=extra)
     background_tasks.add_task(job_execute_video, task_id, project_id, script.id, duration)
     return _task_response(db, task_id)
 
@@ -108,6 +209,8 @@ def run_quick_agent(
 
     project = db.get(Project, project_id)
     if project:
+        if body.pipeline_preset:
+            project.video_mode = body.pipeline_preset
         if body.target_ratio:
             project.target_ratio = body.target_ratio
         if body.target_resolution:
@@ -121,7 +224,12 @@ def run_quick_agent(
         db.commit()
 
     agent = DirectorAgent(db)
-    duration = body.duration or 15
-    task_id = agent.start_full(project_id)
+    duration = body.duration or 20
+    extra: dict = {"duration": duration}
+    if body.pipeline_preset:
+        extra["pipeline_preset"] = body.pipeline_preset
+    if body.target_ratio:
+        extra["target_ratio"] = body.target_ratio
+    task_id = agent.start_full(project_id, extra=extra)
     background_tasks.add_task(job_execute_full, task_id, project_id, duration)
     return _task_response(db, task_id)

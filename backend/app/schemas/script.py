@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 
 class ScriptCreate(BaseModel):
@@ -17,6 +18,7 @@ class ScriptRead(BaseModel):
     factors: Optional[str] = None
     raw_config: Optional[str] = None
     status: str
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

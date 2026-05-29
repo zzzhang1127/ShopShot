@@ -7,6 +7,10 @@ from app.models import GenerationTask, TaskStatus, TaskType
 from app.core.exceptions import ShopShotException
 
 
+class TaskCancelledError(Exception):
+    """Raised when a background job detects cancellation."""
+
+
 class GenerationService:
     def __init__(self, db: Session):
         self.db = db
@@ -63,6 +67,22 @@ class GenerationService:
         self.db.commit()
         self.db.refresh(task)
         return task
+
+    def is_cancelled(self, task_id: str) -> bool:
+        task = self.get(task_id)
+        return task is not None and task.status == TaskStatus.CANCELLED
+
+    def raise_if_cancelled(self, task_id: str | None) -> None:
+        if task_id and self.is_cancelled(task_id):
+            raise TaskCancelledError(f"Task {task_id} was cancelled")
+
+    def cancel_task(self, task_id: str) -> GenerationTask:
+        task = self.get(task_id)
+        if not task:
+            raise ShopShotException(404, "Task not found")
+        if task.status in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELLED):
+            return task
+        return self.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
 
     def list_by_project(self, project_id: int) -> List[GenerationTask]:
         result = self.db.execute(
