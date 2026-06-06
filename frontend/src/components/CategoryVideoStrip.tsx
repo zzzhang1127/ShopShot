@@ -44,7 +44,7 @@ function CategoryVideoTile({
       ref={rootRef}
       type="button"
       onClick={onClick}
-      className={`relative shrink-0 w-[88px] rounded-xl overflow-hidden border transition-all ${
+      className={`relative shrink-0 w-28 md:w-32 rounded-xl overflow-hidden border transition-all ${
         selected ? 'border-cyan-500 ring-2 ring-cyan-500/40' : 'border-white/10 hover:border-white/30'
       }`}
     >
@@ -83,19 +83,7 @@ export default function CategoryVideoStrip({ categories, selectedId, onSelect }:
 
   return (
     <div className="mb-5">
-      <p className="text-xs text-gray-500 mb-2">{t('categoryVideoStripHint')}</p>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <CategoryVideoTile
-          cat={{
-            id: '',
-            label: t('allCategories'),
-            count: categories.reduce((s, c) => s + c.count, 0),
-            previewVideo: categories[0]?.previewVideo || '/templates/clothes.mp4',
-            coverImage: categories[0]?.coverImage || '/templates/clothes.jpg',
-          }}
-          selected={!selectedId}
-          onClick={() => onSelect('')}
-        />
+      <div className="flex gap-3 overflow-x-auto pb-2">
         {categories.map((cat) => (
           <CategoryVideoTile
             key={cat.id}

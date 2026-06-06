@@ -74,7 +74,7 @@ export default function AppShell({
           className="w-10 h-10 rounded-full border border-white/20 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
           title={getLang() === 'zh' ? 'Switch to English' : '切换为中文'}
         >
-          <span className="text-xs font-bold">{getLang() === 'zh' ? 'EN' : '中'}</span>
+          <Globe size={18} />
         </button>
       </aside>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
