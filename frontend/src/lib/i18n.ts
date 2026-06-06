@@ -2,6 +2,67 @@ export type Lang = 'zh' | 'en';
 
 const dict: Record<Lang, Record<string, string>> = {
   zh: {
+    // Status & Enums
+    status_draft: '草稿',
+    status_generating: '生成中',
+    status_completed: '已完成',
+    status_failed: '失败',
+    status_running: '运行中',
+    status_queued: '排队中',
+    status_succeeded: '成功',
+    status_cancelled: '已取消',
+    status_expired: '已过期',
+    status_pending: '等待中',
+    status_image_generating: '图片生成中',
+    status_image_completed: '图片已完成',
+    status_image_failed: '图片失败',
+    status_video_generating: '视频生成中',
+    status_video_completed: '视频已完成',
+    status_video_failed: '视频失败',
+    status_evaluating: '评估中',
+    status_evaluated: '已评估',
+    status_final: '最终成片',
+    status_confirmed: '已确认',
+    
+    mode_product_show: '商品展示',
+    mode_story: '故事剧情',
+    mode_grass: '种草评测',
+    mode_brand: '品牌宣传',
+    mode_quick_create: '快捷生成',
+    mode_asset_based: '素材驱动',
+    mode_i2v: '图生视频',
+    mode_action_transfer: '动作迁移',
+    mode_fashion: '服饰穿搭',
+    mode_3c: '数码家电',
+    mode_home: '家居生活',
+    mode_beauty: '美妆个护',
+    mode_food: '食品饮料',
+    mode_jewelry: '珠宝配饰',
+    mode_pets: '宠物用品',
+    mode_toys: '母婴玩具',
+    mode_sports: '运动户外',
+    mode_auto: '汽车用品',
+    
+    task_script: '剧本生成',
+    task_image: '图片生成',
+    task_video: '视频生成',
+    task_postprocess: '后期处理',
+    task_quick_gen: '快捷生成',
+    task_director: '导演任务',
+
+    shotType_hook: '黄金三秒',
+    shotType_pain_point: '痛点场景',
+    shotType_product_reveal: '产品展示',
+    shotType_solution: '解决方案',
+    shotType_call_to_action: '行动号召',
+    shotType_b_roll: '空镜头',
+    shotType_close_up: '特写',
+    shotType_lifestyle: '生活场景',
+
+    shotLabel: '第 {n} 镜',
+    englishPromptHint: '发送至 Seedance 的英文提示',
+    project: '项目',
+
     // App
     appName: 'ShopShot',
     // Sidebar
@@ -21,6 +82,8 @@ const dict: Record<Lang, Record<string, string>> = {
     heroTitle3: '一键生成',
     heroSubtitle: '上传商品信息，AI 自动生成剧本、分镜与视频，让带货内容创作效率提升 10 倍',
     searchPlaceholder: '描述你想生成的视频... 或粘贴商品链接、上传图片/视频',
+    searchPlaceholderImage: '描述你想生成的图片...',
+    searchPlaceholderVideo: '描述你想生成的视频... 或粘贴商品链接',
     generate: '生成',
     tabImage: '图片',
     tabVideo: '视频',
@@ -69,7 +132,7 @@ const dict: Record<Lang, Record<string, string>> = {
     wbDescEdit: '在资源中心预览、筛选项目素材',
     wbDescUpscale: '进入项目页使用 ComfyUI 高清工作流（可选）',
     wbDescCompare: '查看当前已配置的模型能力对比',
-    wbDescLearn: '浏览官方模板与 Prompt 示例',
+    wbDescLearn: '浏览官方模板与提示词示例',
     wbDescPricing: '查看各模型配置状态与说明',
     wbDescApi: '粘贴 API Key 与 EP，同步到创作模型列表',
     backToHome: '返回首页',
@@ -129,7 +192,7 @@ const dict: Record<Lang, Record<string, string>> = {
     templateSports: '运动户外',
     templateJewelry: '珠宝配饰',
     templateNew: '新上线',
-    templateCatalogCount: '共 {count} 个（目标 {target}）',
+    templateCatalogCount: '已收录 {total} · 持续扩充中',
     templateExpandingHint: '后台 Seed API 正在持续扩充模板库…',
     templateVideoGenHint: 'Seedance 正在生成独立预览视频：{done}/{total}（约每 {interval}s 一条）',
     categoryShowcaseHint: '每个类目示例视频自动循环播放，点击可快速选用模板',
@@ -592,7 +655,7 @@ const dict: Record<Lang, Record<string, string>> = {
     noHistoryYet: 'Completed videos and scripts appear here',
     closePreview: 'Close preview',
     clickToPreview: 'Click to preview',
-    shotThumb: 'Shot',
+    shotThumb: '镜',
     createdAt: 'Created',
     switchLang: '切换为中文',
     // Studio
@@ -637,6 +700,13 @@ export function tf(key: string, vars: Record<string, string | number>): string {
     s = s.replaceAll(`{${k}}`, String(v));
   }
   return s;
+}
+
+export function tEnum(prefix: string, value: string | undefined | null): string {
+  if (!value) return '';
+  const key = `${prefix}_${value.toLowerCase()}`;
+  const translated = t(key);
+  return translated === key ? value : translated;
 }
 
 export function getLang(): Lang {

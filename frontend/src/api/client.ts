@@ -274,6 +274,11 @@ export async function getTaskStatus(taskId: string) {
   return res.data.data;
 }
 
+export async function getLatestTask(projectId: number) {
+  const res = await client.get(`/generations/project/${projectId}/latest`);
+  return res.data.data;
+}
+
 export async function cancelTask(taskId: string) {
   const res = await client.post(`/generations/${taskId}/cancel`);
   return res.data.data as { id: string; status: string };

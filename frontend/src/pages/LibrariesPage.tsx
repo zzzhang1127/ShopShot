@@ -22,6 +22,7 @@ import type { Asset, Script, Video as VideoType } from '../types';
 import MediaLightbox, { type PreviewMedia } from '../components/MediaLightbox';
 import TemplatePreviewCard from '../components/TemplatePreviewCard';
 import VideoThumbnail from '../components/VideoThumbnail';
+import AppShell from '../components/AppShell';
 
 type LibTab = 'assets' | 'videos' | 'audio' | 'scripts' | 'templates';
 
@@ -159,34 +160,28 @@ export default function LibrariesPage() {
           : [];
 
   return (
-    <div className="min-h-screen bg-[#0B0A16] text-gray-300">
-      <MediaLightbox media={preview} onClose={() => setPreview(null)} />
+    <AppShell title={t('libraryHubTitle')}>
+      <div className="flex-1 overflow-y-auto bg-[#0B0A16] text-gray-300">
+        <MediaLightbox media={preview} onClose={() => setPreview(null)} />
 
-      <header className="border-b border-white/10 bg-[#13121F] px-6 py-4 flex items-center gap-4">
-        <Link to="/" className="flex items-center gap-2 text-sm text-gray-500 hover:text-white">
-          <ChevronLeft size={16} /> {t('home')}
-        </Link>
-        <h1 className="text-lg font-bold text-white">{t('libraryHubTitle')}</h1>
-      </header>
+        <div className="flex gap-2 px-6 py-4 border-b border-white/5 overflow-x-auto">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => switchTab(item.id, item.path)}
+              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${
+                tab === item.id || (item.id === 'scripts' && tab === 'scripts')
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white/5 text-gray-400 hover:text-white'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-      <div className="flex gap-2 px-6 py-4 border-b border-white/5 overflow-x-auto">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => switchTab(item.id, item.path)}
-            className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${
-              tab === item.id || (item.id === 'scripts' && tab === 'scripts')
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white/5 text-gray-400 hover:text-white'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <main className="p-6 max-w-6xl mx-auto">
+        <main className="p-6 max-w-6xl mx-auto">
         {loading && <p className="text-sm text-gray-500">{t('loading')}</p>}
 
         {!loading && tab === 'assets' && models.length > 0 && (
@@ -211,7 +206,7 @@ export default function LibrariesPage() {
                       {m.configured ? t('modelConfigured') : t('modelNotConfigured')}
                     </span>
                   </div>
-                  <p className="text-[11px] text-indigo-300/80 mb-1">{m.role}</p>
+                  <p className="text-[11px] text-blue-300/80 mb-1">{m.role}</p>
                   {m.endpoint_hint && (
                     <p className="text-[10px] text-gray-500 truncate" title={m.endpoint_hint}>
                       {m.endpoint_hint}
@@ -242,7 +237,7 @@ export default function LibrariesPage() {
                         title: a.name,
                       })
                     }
-                    className="text-left rounded-xl border border-white/10 bg-[#13121F] overflow-hidden hover:border-indigo-500/40"
+                    className="text-left rounded-xl border border-white/10 bg-[#13121F] overflow-hidden hover:border-blue-500/40"
                   >
                     {a.type === 'image' && (
                       <img src={assetUrl(a.url)} alt="" className="w-full aspect-square object-cover" />
@@ -260,13 +255,13 @@ export default function LibrariesPage() {
                       <div className="text-[9px] text-gray-600 truncate">
                         {a.project_id != null && projectNames[a.project_id]
                           ? projectNames[a.project_id]
-                          : `#${a.project_id}`}
+                          : t('project') + ` #${a.project_id}`}
                       </div>
                       {a.project_id != null && (
                         <Link
                           to={`/projects/${a.project_id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="text-[9px] text-indigo-400 hover:underline mt-1 inline-block"
+                          className="text-[9px] text-blue-400 hover:underline mt-1 inline-block"
                         >
                           {t('openProject')}
                         </Link>
@@ -291,7 +286,7 @@ export default function LibrariesPage() {
                             title:
                               v.project_id != null && projectNames[v.project_id]
                                 ? projectNames[v.project_id]
-                                : `Project #${v.project_id}`,
+                                : t('project') + ` #${v.project_id}`,
                           })
                         }
                         className="w-full text-left"
@@ -303,14 +298,14 @@ export default function LibrariesPage() {
                           <span>
                             {v.project_id != null && projectNames[v.project_id]
                               ? projectNames[v.project_id]
-                              : `Project #${v.project_id}`}
+                              : t('project') + ` #${v.project_id}`}
                           </span>
                           {v.created_at && <span>{new Date(v.created_at).toLocaleString()}</span>}
                         </div>
                         {v.project_id && (
                           <Link
                             to={`/projects/${v.project_id}`}
-                            className="inline-block mt-2 text-xs text-indigo-400 hover:underline"
+                            className="inline-block mt-2 text-xs text-blue-400 hover:underline"
                           >
                             {t('openProject')}
                           </Link>
@@ -338,13 +333,13 @@ export default function LibrariesPage() {
                   >
                     <div>
                       <div className="text-sm font-medium text-white flex items-center gap-2">
-                        <FileText size={14} className="text-indigo-400" />
-                        {sc.title || t('untitledScript')} #{sc.id}
+                        <FileText size={14} className="text-blue-400" />
+                        {sc.title || t('untitledScript')}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {sc.project_id != null && projectNames[sc.project_id]
                           ? projectNames[sc.project_id]
-                          : `Project #${sc.project_id}`}
+                          : t('project') + ` #${sc.project_id}`}
                         {sc.created_at && ` · ${new Date(sc.created_at).toLocaleString()}`}
                       </div>
                     </div>
@@ -352,7 +347,7 @@ export default function LibrariesPage() {
                       <Link
                         to={`/projects/${sc.project_id}`}
                         state={{ activeScriptId: sc.id }}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                        className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500"
                       >
                         {t('openProject')}
                       </Link>
@@ -424,6 +419,7 @@ export default function LibrariesPage() {
           </>
         )}
       </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

@@ -55,6 +55,26 @@ def cancel_generation_task(task_id: str, db: Session = Depends(get_db)):
     return ApiResponse(data=TaskCancelRead(id=task.id, status=task.status))
 
 
+@router.get("/generations/project/{project_id}/latest", response_model=ApiResponse[GenerationTaskRead | None])
+def get_latest_task_for_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import select
+    from app.models import GenerationTask
+    
+    result = db.execute(
+        select(GenerationTask)
+        .where(GenerationTask.project_id == project_id)
+        .order_by(GenerationTask.created_at.desc())
+        .limit(1)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        return ApiResponse(data=None)
+    return ApiResponse(data=GenerationTaskRead.model_validate(task))
+
+
 @router.get("/generations/{task_id}/payload", response_model=ApiResponse[TaskPayloadRead])
 def get_task_payload(task_id: str, db: Session = Depends(get_db)):
     """Pixelle-style duplicate: return saved run parameters for replay."""

@@ -94,6 +94,11 @@ class DirectorAgent:
             self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
+            project = self.db.get(Project, project_id)
+            if project:
+                from app.models import ProjectStatus
+                project.status = ProjectStatus.DRAFT
+                self.db.commit()
             raise
 
     def run_script_only(self, project_id: int) -> str:
@@ -165,10 +170,19 @@ class DirectorAgent:
                 step="done",
                 result=json.dumps({"video_id": video.id, "video_url": video.url}),
             )
+            if project:
+                from app.models import ProjectStatus
+                project.status = ProjectStatus.COMPLETED
+                self.db.commit()
         except TaskCancelledError:
             self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
+            project = self.db.get(Project, project_id)
+            if project:
+                from app.models import ProjectStatus
+                project.status = ProjectStatus.DRAFT
+                self.db.commit()
             raise
 
     def run_video_only(self, project_id: int, script_id: int, duration: int | None = None) -> str:
@@ -301,10 +315,19 @@ class DirectorAgent:
                 step="done",
                 result=json.dumps({"video_id": video.id, "video_url": video.url}),
             )
+            if project:
+                from app.models import ProjectStatus
+                project.status = ProjectStatus.COMPLETED
+                self.db.commit()
         except TaskCancelledError:
             self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
+            project = self.db.get(Project, project_id)
+            if project:
+                from app.models import ProjectStatus
+                project.status = ProjectStatus.DRAFT
+                self.db.commit()
             raise
 
     def run_quick(
@@ -403,6 +426,11 @@ class DirectorAgent:
             self.gen_service.update_status(task_id, TaskStatus.CANCELLED, step="cancelled")
         except Exception as e:
             self.gen_service.update_status(task_id, TaskStatus.FAILED, error=str(e), step="failed")
+            project = self.db.get(Project, project_id)
+            if project:
+                from app.models import ProjectStatus
+                project.status = ProjectStatus.DRAFT
+                self.db.commit()
             raise
 
     def run(self, project_id: int, duration: int | None = None) -> str:

@@ -52,6 +52,8 @@ export default function ComfyWorkflowPanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [workflowJson, setWorkflowJson] = useState('');
 
+  const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
     setComfyPrompt(defaultPrompt);
   }, [defaultPrompt]);
@@ -163,11 +165,12 @@ export default function ComfyWorkflowPanel({
   return (
     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
           {t('comfyOptional')}
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </div>
         <div className="flex items-center gap-2">
-          {editorUrl && (
+          {editorUrl && expanded && (
             <a
               href={editorUrl}
               target="_blank"
@@ -190,11 +193,13 @@ export default function ComfyWorkflowPanel({
         </div>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('comfyOptionalHint')}</p>
-      {status?.message && <p className="text-xs text-gray-400 mb-3">{status.message}</p>}
+      {expanded && (
+        <>
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">{t('comfyOptionalHint')}</p>
+          {status?.message && <p className="text-xs text-gray-400 mb-3">{status.message}</p>}
 
-      {!status?.enabled && (
-        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+          {!status?.enabled && (
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
           {t('comfySetupHint')}
         </div>
       )}
@@ -308,6 +313,8 @@ export default function ComfyWorkflowPanel({
         <p className="text-[10px] text-gray-600 mt-3 truncate" title={selectedWorkflow.path}>
           {selectedWorkflow.path}
         </p>
+      )}
+      </>
       )}
     </div>
   );

@@ -25,6 +25,7 @@ import {
   runVideoAgent,
   runQuickAgent,
   getTaskStatus,
+  getLatestTask,
   updateShot,
   updateProject,
   createProject,
@@ -37,7 +38,7 @@ import {
   enhancePrompt,
   formatApiError,
 } from '../api/client';
-import { t, subscribe } from '../lib/i18n';
+import { t, tf, tEnum, subscribe } from '../lib/i18n';
 import GenerationProgress from '../components/GenerationProgress';
 import ComfyWorkflowPanel from '../components/ComfyWorkflowPanel';
 import RecentGenerations from '../components/RecentGenerations';
@@ -188,8 +189,19 @@ export default function ProjectDetail() {
   }, [routeState?.initialDuration, routeState?.initialRatio, routeState?.pipelinePreset]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load().then(async () => {
+      // Resume polling if there's an active task
+      try {
+        const latestTask = await getLatestTask(projectId);
+        if (latestTask && (latestTask.status === 'queued' || latestTask.status === 'running')) {
+          setTask(latestTask);
+          setLastTaskId(latestTask.id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest task:', err);
+      }
+    });
+  }, [load, projectId]);
 
   useEffect(() => {
     listModelCapabilities()
@@ -520,7 +532,7 @@ export default function ProjectDetail() {
         <div className="mb-6">
           <h2 className="text-sm font-bold text-white mb-1">{project.name}</h2>
           <div className="text-xs text-gray-500">
-            {t('status')}: {project.status}
+            {t('status')}: {t(`status_${project.status.toLowerCase()}`)}
           </div>
         </div>
 
@@ -532,11 +544,11 @@ export default function ProjectDetail() {
           <div className="flex gap-1.5 mb-3">
             <label
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-[#1C1B2B] border border-white/5 text-[10px] ${
-                busy ? 'opacity-40 pointer-events-none' : 'hover:border-indigo-500/40 cursor-pointer'
+                busy ? 'opacity-40 pointer-events-none' : 'hover:border-blue-500/40 cursor-pointer'
               }`}
               title={t('uploadImage')}
             >
-              <ImageIcon size={14} className="text-pink-400" />
+              <ImageIcon size={14} className="text-cyan-400" />
               {t('image')}
               <input
                 type="file"
@@ -548,7 +560,7 @@ export default function ProjectDetail() {
             </label>
             <label
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-[#1C1B2B] border border-white/5 text-[10px] ${
-                busy ? 'opacity-40 pointer-events-none' : 'hover:border-indigo-500/40 cursor-pointer'
+                busy ? 'opacity-40 pointer-events-none' : 'hover:border-blue-500/40 cursor-pointer'
               }`}
               title={t('uploadVideo')}
             >
@@ -564,11 +576,11 @@ export default function ProjectDetail() {
             </label>
             <label
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-[#1C1B2B] border border-white/5 text-[10px] ${
-                busy ? 'opacity-40 pointer-events-none' : 'hover:border-indigo-500/40 cursor-pointer'
+                busy ? 'opacity-40 pointer-events-none' : 'hover:border-blue-500/40 cursor-pointer'
               }`}
               title={t('uploadBgm')}
             >
-              <Music size={14} className="text-violet-400" />
+              <Music size={14} className="text-blue-400" />
               {t('sourceBgm')}
               <input
                 type="file"
@@ -586,13 +598,13 @@ export default function ProjectDetail() {
                 type="button"
                 disabled={busy}
                 onClick={() => openAssetPreview(a)}
-                className="relative aspect-square rounded-lg overflow-hidden bg-[#1C1B2B] border border-white/5 hover:border-indigo-500/60 hover:ring-2 hover:ring-indigo-500/30 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="relative aspect-square rounded-lg overflow-hidden bg-[#1C1B2B] border border-white/5 hover:border-blue-500/60 hover:ring-2 hover:ring-blue-500/30 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 title={t('clickToPreview')}
               >
                 {a.type === 'image' ? (
                   <img src={assetUrl(a.url)} alt={a.name} className="w-full h-full object-cover" />
                 ) : a.type === 'audio' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-indigo-400 px-1">
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-blue-400 px-1">
                     <Music size={22} />
                     <span className="text-[9px] text-gray-500 truncate w-full text-center">{a.name}</span>
                   </div>
@@ -621,7 +633,7 @@ export default function ProjectDetail() {
                 onClick={() => setAspectRatio(r)}
                 className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs transition-all ${
                   aspectRatio === r
-                    ? 'bg-[#212036] border-indigo-500 text-white'
+                    ? 'bg-[#212036] border-blue-500 text-white'
                     : 'bg-[#1C1B2B] border-white/5 text-gray-500 hover:border-white/20'
                 }`}
               >
@@ -736,6 +748,7 @@ export default function ProjectDetail() {
               onDurationChange={setDuration}
               showTemplatesTab
               placeholder={t('enterPrompt')}
+              hideGenerateButton={true}
             />
 
             <div className="flex flex-wrap gap-2">
@@ -756,7 +769,7 @@ export default function ProjectDetail() {
                 type="button"
                 disabled={busy}
                 onClick={handleGenerateScript}
-                className="px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40"
+                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40"
               >
                 {t('generateScriptOnly')}
               </button>
@@ -796,7 +809,7 @@ export default function ProjectDetail() {
             />
 
             <div className="rounded-2xl border border-white/10 bg-[#13121F] p-5">
-              <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+              <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-3">
                 {t('projectAssets')}
               </div>
               <div className="mt-2 pt-2 border-t border-white/5">
@@ -807,7 +820,7 @@ export default function ProjectDetail() {
                       busy ? 'opacity-40 pointer-events-none' : 'hover:bg-white/10 cursor-pointer'
                     }`}
                   >
-                    <ImageIcon size={14} className="text-pink-400" />
+                    <ImageIcon size={14} className="text-cyan-400" />
                     {t('uploadImage')}
                     <input
                       type="file"
@@ -837,7 +850,7 @@ export default function ProjectDetail() {
                       busy ? 'opacity-40 pointer-events-none' : 'hover:bg-white/10 cursor-pointer'
                     }`}
                   >
-                    <Music size={14} className="text-violet-400" />
+                    <Music size={14} className="text-blue-400" />
                     {t('uploadBgm')}
                     <input
                       type="file"
@@ -852,7 +865,7 @@ export default function ProjectDetail() {
                       busy ? 'opacity-40 pointer-events-none' : 'hover:bg-white/10 cursor-pointer'
                     }`}
                   >
-                    <Music size={14} className="text-fuchsia-400" />
+                    <Music size={14} className="text-blue-400" />
                     {t('uploadVoiceClone')}
                     <input
                       type="file"
@@ -889,7 +902,7 @@ export default function ProjectDetail() {
                         type="button"
                         onClick={handleImportBgm}
                         disabled={busy || !selectedBgmPath}
-                        className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold disabled:opacity-40"
+                        className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40"
                       >
                         {t('importBgm')}
                       </button>
@@ -908,9 +921,9 @@ export default function ProjectDetail() {
 
             {/* 深度模式：分镜编辑 */}
             {(showDeepMode || mode === 'advanced') && (
-              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-5 space-y-4">
+              <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                  <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
                     {t('modeAdvancedTitle')}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -918,7 +931,7 @@ export default function ProjectDetail() {
                       type="button"
                       disabled={busy}
                       onClick={handleGenerateScript}
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50"
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-50"
                     >
                       {busy ? t('running') : t('generateScriptOnly')}
                     </button>
@@ -965,7 +978,7 @@ export default function ProjectDetail() {
                             }}
                             className={`shrink-0 w-20 rounded-lg border overflow-hidden text-left transition-all ${
                               ref
-                                ? 'border-indigo-500/40 hover:ring-2 hover:ring-indigo-500/50 cursor-pointer'
+                                ? 'border-blue-500/40 hover:ring-2 hover:ring-blue-500/50 cursor-pointer'
                                 : 'border-white/10 cursor-default'
                             }`}
                           >
@@ -980,7 +993,7 @@ export default function ProjectDetail() {
                                 <video src={assetUrl(ref.url)} className="w-full h-full object-cover" muted />
                               ) : (
                                 <span className="text-[10px] text-gray-600 px-1 text-center">
-                                  {shot.shot_id}
+                                  {t('shotLabel').replace('{n}', String(shot.sequence + 1))}
                                 </span>
                               )}
                             </div>
@@ -1003,37 +1016,44 @@ export default function ProjectDetail() {
                           className="p-4 rounded-xl bg-[#13121F] border border-white/10"
                         >
                           <div className="font-semibold text-sm text-white mb-2">
-                            {shot.shot_id} ({shot.type || t('shot')})
+                            {t('shotLabel').replace('{n}', String(shot.sequence + 1))} ({tEnum('shotType', shot.type) || shot.type})
                           </div>
                           <div className="mb-3 text-xs text-gray-300">
                             <span className="text-gray-500">{t('words')}:</span> {shot.words || '-'}
                           </div>
-                          <div className="mb-2">
-                            <label className="block text-xs text-gray-500 mb-1">{t('imagePrompt')}</label>
-                            <textarea
-                              value={shot.image_prompt || ''}
-                              disabled={busy}
-                              onChange={(e) =>
-                                handleUpdateShot(shot.id, 'image_prompt', e.target.value)
-                              }
-                              rows={2}
-                              className="w-full px-3 py-2 rounded-lg bg-[#1C1B2B] border border-white/10 text-sm text-white outline-none focus:border-indigo-500 resize-none disabled:opacity-60"
-                            />
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-xs text-gray-500 mb-1">{t('actionPrompt')}</label>
-                            <textarea
-                              value={shot.action_prompt || ''}
-                              disabled={busy}
-                              onChange={(e) =>
-                                handleUpdateShot(shot.id, 'action_prompt', e.target.value)
-                              }
-                              rows={2}
-                              className="w-full px-3 py-2 rounded-lg bg-[#1C1B2B] border border-white/10 text-sm text-white outline-none focus:border-indigo-500 resize-none disabled:opacity-60"
-                            />
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {t('status')}: {shot.status} | {t('duration')}: {shot.duration}
+                          <details className="mb-2">
+                            <summary className="text-xs text-gray-500 mb-1 cursor-pointer hover:text-gray-400 outline-none">
+                              {t('englishPromptHint')}
+                            </summary>
+                            <div className="mt-2 space-y-2 pl-2 border-l-2 border-white/10">
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">{t('imagePrompt')}</label>
+                                <textarea
+                                  value={shot.image_prompt || ''}
+                                  disabled={busy}
+                                  onChange={(e) =>
+                                    handleUpdateShot(shot.id, 'image_prompt', e.target.value)
+                                  }
+                                  rows={2}
+                                  className="w-full px-3 py-2 rounded-lg bg-[#1C1B2B] border border-white/10 text-sm text-white outline-none focus:border-blue-500 resize-none disabled:opacity-60"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-500 mb-1">{t('actionPrompt')}</label>
+                                <textarea
+                                  value={shot.action_prompt || ''}
+                                  disabled={busy}
+                                  onChange={(e) =>
+                                    handleUpdateShot(shot.id, 'action_prompt', e.target.value)
+                                  }
+                                  rows={2}
+                                  className="w-full px-3 py-2 rounded-lg bg-[#1C1B2B] border border-white/10 text-sm text-white outline-none focus:border-blue-500 resize-none disabled:opacity-60"
+                                />
+                              </div>
+                            </div>
+                          </details>
+                          <div className="text-xs text-gray-500 mt-3">
+                            {t('status')}: {t(`status_${shot.status.toLowerCase()}`)} | {t('duration')}: {shot.duration}
                             {t('seconds')}
                           </div>
                         </div>
@@ -1081,7 +1101,7 @@ export default function ProjectDetail() {
                     type="button"
                     disabled={busy}
                     onClick={handleCreateNext}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40"
                   >
                     <Film size={14} /> {t('createNextVideo')}
                   </button>
@@ -1103,7 +1123,7 @@ export default function ProjectDetail() {
                       />
                       <div className="text-xs text-gray-500 mt-2 flex justify-between">
                         <span>
-                          {t('status')}: {v.status}
+                          {t('status')}: {t(`status_${v.status.toLowerCase()}`)}
                         </span>
                         {v.created_at && (
                           <span>
@@ -1114,7 +1134,7 @@ export default function ProjectDetail() {
                       <button
                         type="button"
                         onClick={() => handleAddVideoToTemplates(v)}
-                        className="mt-2 px-3 py-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs hover:bg-indigo-500/25"
+                        className="mt-2 px-3 py-1.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs hover:bg-blue-500/25"
                       >
                         {t('addToTemplates')}
                       </button>
@@ -1137,15 +1157,15 @@ export default function ProjectDetail() {
                         onClick={() => selectScript(sc.id)}
                         className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
                           sc.id === activeScriptId
-                            ? 'border-indigo-500/50 bg-indigo-500/10'
+                            ? 'border-blue-500/50 bg-blue-500/10'
                             : 'border-white/10 bg-[#1C1B2B] hover:border-white/20'
                         }`}
                       >
                         <div className="text-sm font-medium text-white">
-                          {sc.title || t('untitledScript')} #{sc.id}
+                          {sc.title || t('untitledScript')}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {t('status')}: {sc.status}
+                          {t('status')}: {t(`status_${sc.status.toLowerCase()}`)}
                           {sc.created_at && ` · ${new Date(sc.created_at).toLocaleString()}`}
                         </div>
                       </button>

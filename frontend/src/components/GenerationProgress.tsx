@@ -81,7 +81,7 @@ export default function GenerationProgress({
           : t('generating');
 
   return (
-    <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-[#13121F] border border-indigo-500/30 shadow-lg shadow-indigo-500/10">
+    <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-[#13121F] border border-blue-500/30 shadow-lg shadow-blue-500/10">
       <div className="flex items-center justify-between mb-3 gap-2">
         <span className="text-sm font-semibold text-white">{title}</span>
         <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function GenerationProgress({
               {cancelling ? t('running') : t('cancelTask')}
             </button>
           )}
-          <span className="text-sm font-bold text-indigo-400">{pct}%</span>
+          <span className="text-sm font-bold text-blue-400">{pct}%</span>
         </div>
       </div>
       <div className="h-2.5 w-full rounded-full bg-[#1C1B2B] overflow-hidden mb-3">
@@ -105,14 +105,14 @@ export default function GenerationProgress({
               ? 'bg-red-500'
               : status === 'succeeded'
                 ? 'bg-green-500'
-                : 'bg-gradient-to-r from-indigo-500 to-purple-500'
+                : 'bg-gradient-to-r from-blue-500 to-cyan-500'
           } ${running ? 'animate-pulse' : ''}`}
           style={{ width: `${pct}%` }}
         />
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
         <span>
-          {t('task')}: <span className="text-gray-200">{task.type}</span>
+          {t('task')}: <span className="text-gray-200">{t(`task_${task.type.toLowerCase()}`)}</span>
         </span>
         <span>
           {t('status')}:{' '}

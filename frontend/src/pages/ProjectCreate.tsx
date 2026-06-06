@@ -30,7 +30,7 @@ export default function ProjectCreate() {
     <div className="min-h-screen bg-[#09090b] text-white p-6">
       <div className="max-w-xl mx-auto">
         <div className="mb-6">
-          <Link to="/projects" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+          <Link to="/projects" className="text-blue-400 hover:text-blue-300 transition-colors">
             {t('backToProjects')}
           </Link>
         </div>
@@ -43,7 +43,7 @@ export default function ProjectCreate() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors"
             />
           </div>
           <div>
@@ -51,7 +51,7 @@ export default function ProjectCreate() {
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors"
             />
           </div>
           <div>
@@ -60,7 +60,7 @@ export default function ProjectCreate() {
               value={productInfo}
               onChange={(e) => setProductInfo(e.target.value)}
               rows={4}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 outline-none focus:border-purple-500 transition-colors resize-none"
+              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 outline-none focus:border-cyan-500 transition-colors resize-none"
             />
           </div>
           <div>
@@ -68,7 +68,7 @@ export default function ProjectCreate() {
             <select
               value={videoMode}
               onChange={(e) => setVideoMode(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white outline-none focus:border-cyan-500 transition-colors"
             >
               <option value="product_show">{t('productShow')}</option>
               <option value="story">{t('story')}</option>
@@ -78,7 +78,7 @@ export default function ProjectCreate() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold transition-all disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-400 hover:to-cyan-500 text-white font-semibold transition-all disabled:opacity-50"
           >
             {submitting ? t('creating') : t('create')}
           </button>

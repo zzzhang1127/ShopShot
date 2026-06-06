@@ -45,7 +45,7 @@ function CategoryVideoTile({
       type="button"
       onClick={onClick}
       className={`relative shrink-0 w-[88px] rounded-xl overflow-hidden border transition-all ${
-        selected ? 'border-purple-500 ring-2 ring-purple-500/40' : 'border-white/10 hover:border-white/30'
+        selected ? 'border-cyan-500 ring-2 ring-cyan-500/40' : 'border-white/10 hover:border-white/30'
       }`}
     >
       <div className="aspect-[9/16] bg-black relative">

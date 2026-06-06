@@ -38,7 +38,7 @@ export default function RecentGenerations({
         {videos.slice(0, 6).map((v) => (
           <div
             key={v.id}
-            className="flex gap-4 p-3 rounded-xl bg-[#1C1B2B] border border-white/5 hover:border-purple-500/30 transition-colors"
+            className="flex gap-4 p-3 rounded-xl bg-[#1C1B2B] border border-white/5 hover:border-cyan-500/30 transition-colors"
           >
             <button
               type="button"
@@ -56,16 +56,10 @@ export default function RecentGenerations({
               <p className="text-sm text-gray-200 line-clamp-2">{prompt || t('untitledScript')}</p>
               <div className="flex flex-wrap gap-2 mt-2">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
-                  Seedance
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-gray-400 border border-white/10">
-                  {v.status}
+                  {t(`status_${v.status.toLowerCase()}`)}
                 </span>
               </div>
             </div>
-            <button type="button" className="self-start p-2 text-gray-500 hover:text-white">
-              <MoreHorizontal size={18} />
-            </button>
           </div>
         ))}
       </div>

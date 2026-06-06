@@ -45,7 +45,7 @@ export default function ProjectList() {
             </Link>
             <Link
               to="/projects/new"
-              className="px-5 py-2 text-sm rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold hover:from-indigo-400 hover:to-purple-500 transition-all"
+              className="px-5 py-2 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold hover:from-blue-400 hover:to-cyan-500 transition-all"
             >
               {t('newProject')}
             </Link>
@@ -60,7 +60,7 @@ export default function ProjectList() {
               <p className="text-gray-400 text-lg mb-4">{t('noProjects')}</p>
               <Link
                 to="/projects/new"
-                className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold"
+                className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold"
               >
                 {t('newProject')}
               </Link>
@@ -71,11 +71,11 @@ export default function ProjectList() {
                 <Link
                   key={p.id}
                   to={`/projects/${p.id}`}
-                  className="block p-5 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/50 hover:bg-white/[0.07] transition-all"
+                  className="block p-5 rounded-xl bg-white/5 border border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.07] transition-all"
                 >
                   <div className="font-semibold text-lg">{p.name}</div>
                   <div className="text-sm text-gray-400 mt-1">
-                    {t('status')}: {p.status} | {t('mode')}: {p.video_mode || 'product_show'} |{' '}
+                    {t('status')}: {t(`status_${p.status.toLowerCase()}`)} | {t('mode')}: {t(`mode_${p.video_mode || 'product_show'}`)} |{' '}
                     {new Date(p.created_at).toLocaleString()}
                   </div>
                 </Link>

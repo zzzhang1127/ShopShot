@@ -70,7 +70,7 @@ export default function ModelConfigPanel({ open, onClose, onSaved }: Props) {
         <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#13121F]">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Key size={18} className="text-purple-400" />
+              <Key size={18} className="text-cyan-400" />
               {t('modelSettings')}
             </h2>
             <p className="text-xs text-gray-500 mt-1">{t('modelSettingsHint')}</p>
@@ -170,7 +170,7 @@ export default function ModelConfigPanel({ open, onClose, onSaved }: Props) {
                 onClick={() =>
                   setState((s) => ({ ...s, customModels: [...s.customModels, emptyCustom()] }))
                 }
-                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
+                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
               >
                 <Plus size={14} /> {t('addCustomModel')}
               </button>
@@ -248,7 +248,7 @@ export default function ModelConfigPanel({ open, onClose, onSaved }: Props) {
           <button
             type="button"
             onClick={handleSave}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-500"
           >
             <Save size={16} /> {t('saveSettings')}
           </button>

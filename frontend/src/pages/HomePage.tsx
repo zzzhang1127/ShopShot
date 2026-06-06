@@ -17,6 +17,7 @@ import {
   formatApiError,
   listModelCapabilities,
   listTemplateCatalog,
+  getComfyHealth,
 } from '../api/client';
 import { mapCatalogItem, type OfficialTemplate } from '../lib/officialTemplates';
 import { listCustomTemplates, removeCustomTemplate, type UserTemplate } from '../lib/templateStore';
@@ -49,6 +50,7 @@ export default function HomePage() {
   const [selectedTemplate, setSelectedTemplate] = useState<OfficialTemplate | UserTemplate | null>(null);
   const [creating, setCreating] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [mediaTab, setMediaTab] = useState<MediaTab>('video');
   const [selectedModelId, setSelectedModelId] = useState('seedance-video');
   const [backendModels, setBackendModels] = useState<
@@ -91,7 +93,19 @@ export default function HomePage() {
 
   useEffect(() => {
     setCustomTemplates(listCustomTemplates());
+    // Auto-connect ComfyUI
+    getComfyHealth().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (uploadedFile) {
+      const url = URL.createObjectURL(uploadedFile);
+      setUploadedFileUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setUploadedFileUrl(null);
+    }
+  }, [uploadedFile]);
 
   const loadCatalog = async (append = false) => {
     if (templateTab !== 'official') return;
@@ -335,7 +349,6 @@ export default function HomePage() {
   const shortcutTiles = [
     { icon: ImageIcon, labelKey: 'shortcutImage', tab: 'image' as MediaTab },
     { icon: Video, labelKey: 'shortcutVideo', tab: 'video' as MediaTab },
-    { icon: Music, labelKey: 'shortcutAudio', tab: 'audio' as MediaTab },
     { icon: LayoutTemplate, labelKey: 'shortcutTemplates', tab: 'templates' as MediaTab },
   ];
 
@@ -350,28 +363,26 @@ export default function HomePage() {
 
       <main className="flex-1 relative flex flex-col overflow-y-auto">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1a0b2e] via-[#09090b] to-[#09090b]" />
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]" />
-          <div className="absolute top-20 right-1/4 w-80 h-80 bg-blue-600/15 rounded-full blur-[100px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#09090b] via-[#09090b] to-[#09090b]" />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[120px]" />
+          <div className="absolute top-20 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center pt-20 px-8 w-full min-h-full">
-          <h1
-            className="text-5xl md:text-7xl font-black text-center tracking-tight leading-tight mb-4 drop-shadow-2xl"
-            style={{ fontFamily: "'Impact', 'Arial Black', sans-serif" }}
+        <div className="relative z-10 flex flex-col items-center pt-12 px-8 w-full min-h-full">
+          <h1 
+            className="text-4xl md:text-6xl font-bold text-center tracking-tight leading-tight mb-5 drop-shadow-2xl"
+            style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Oswald', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif", letterSpacing: '0.05em' }}
           >
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent">
               {t('heroTitle1')}
             </span>
-            <br />
-            <span className="text-white">{t('heroTitle2')}</span>
-            <br />
+            <span className="text-white mx-2 md:mx-3">{t('heroTitle2')}</span>
             <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
               {t('heroTitle3')}
             </span>
           </h1>
 
-          <p className="text-gray-400 text-center max-w-2xl mb-10 text-lg">{t('heroSubtitle')}</p>
+          <p className="text-gray-400 text-center max-w-2xl mb-8 text-sm">{t('heroSubtitle')}</p>
 
           <input
             ref={fileInputRef}
@@ -428,9 +439,9 @@ export default function HomePage() {
                   if (tile.tab === 'image') fileInputRef.current?.click();
                   if (tile.tab === 'templates') navigate('/templates');
                 }}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-purple-500/40 hover:bg-white/10 backdrop-blur-md w-20 transition-all"
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-500/40 hover:bg-white/10 backdrop-blur-md w-24 transition-all"
               >
-                <tile.icon size={22} className="text-purple-300" />
+                <tile.icon size={22} className="text-cyan-300" />
                 <span className="text-[11px] text-gray-400">{t(tile.labelKey)}</span>
               </button>
             ))}
@@ -439,68 +450,72 @@ export default function HomePage() {
           {(uploadedFile || selectedTemplate) && (
             <div className="mb-6 flex flex-wrap gap-2 justify-center">
               {uploadedFile && (
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 text-xs">
-                  <CheckCircle2 size={12} /> {uploadedFile.name}
+                <div className="relative group rounded-xl overflow-hidden border border-emerald-500/30 bg-black/50 backdrop-blur-md">
+                  {uploadedFileUrl && uploadedFile.type.startsWith('image/') ? (
+                    <img src={uploadedFileUrl} alt="preview" className="h-24 w-auto object-contain" />
+                  ) : uploadedFileUrl && uploadedFile.type.startsWith('video/') ? (
+                    <video src={uploadedFileUrl} className="h-24 w-auto object-contain" />
+                  ) : (
+                    <div className="h-24 px-4 flex items-center justify-center text-emerald-300 text-xs">
+                      <CheckCircle2 size={16} className="mr-1" /> {uploadedFile.name}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setUploadedFile(null)}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                  >
+                    <X size={12} />
+                  </button>
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                    <div className="text-[10px] text-white truncate text-center px-1">{uploadedFile.name}</div>
+                  </div>
                 </div>
               )}
               {selectedTemplate && (
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/30 text-purple-300 text-xs">
-                  {selectedTemplate.title}
-                  <button type="button" onClick={() => setSelectedTemplate(null)}>
+                <div className="relative group rounded-xl overflow-hidden border border-cyan-500/30 bg-black/50 backdrop-blur-md">
+                  {selectedTemplate.coverImage ? (
+                    <img src={selectedTemplate.coverImage} alt="preview" className="h-24 w-auto object-contain" />
+                  ) : (
+                    <div className="h-24 px-4 flex items-center justify-center text-cyan-300 text-xs">
+                      {selectedTemplate.title}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTemplate(null)}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                  >
                     <X size={12} />
                   </button>
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                    <div className="text-[10px] text-white truncate text-center px-1">{selectedTemplate.title}</div>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          <p className="text-xs text-gray-500 text-center max-w-xl mb-8">{t('pixelleHubHint')}</p>
-
-          <FeatureWorkbench onAction={handleWorkbenchAction} activePanel={workbenchPanel} />
-
-          {(workbenchPanel === 'learn' || workbenchPanel === 'pricing') && (
-            <div className="w-full max-w-5xl mb-8 p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-sm text-gray-300">
-              <h3 className="font-semibold text-white mb-2">
-                {workbenchPanel === 'learn' ? t('wbLearnTitle') : t('wbPricingTitle')}
-              </h3>
-              <p className="text-xs leading-relaxed">
-                {workbenchPanel === 'learn' ? t('wbLearnBody') : t('wbPricingBody')}
-              </p>
-            </div>
-          )}
-
-          <div ref={templatesRef} className="w-full max-w-[1400px] pb-12">
+          <div ref={templatesRef} className="w-full max-w-[1400px] pb-12 mt-8">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  <span className="text-white">
                     {t('trendingTemplates')}
                   </span>
                   {templateTab === 'official' && catalogTotal > 0 && (
                     <span className="text-xs font-normal text-gray-500">
-                      {tf('templateCatalogCount', { count: catalogTotal, target: catalogTarget })}
+                      {t('templateCatalogCount').replace('{total}', String(catalogTotal))}
                     </span>
                   )}
                 </h2>
-                {templateTab === 'official' && catalogExpanding && (
-                  <p className="text-[11px] text-emerald-400/90 mt-1">{t('templateExpandingHint')}</p>
-                )}
-                {templateTab === 'official' && videoGenEnabled && videosGenerated < catalogTotal && (
-                  <p className="text-[11px] text-amber-400/90 mt-1">
-                    {tf('templateVideoGenHint', {
-                      done: videosGenerated,
-                      total: catalogTotal,
-                      interval: videoGenInterval,
-                    })}
-                  </p>
-                )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => setTemplateTab('official')}
                   className={`text-xs px-3 py-1 rounded-full border ${
                     templateTab === 'official'
-                      ? 'border-indigo-500 text-white bg-indigo-500/20'
+                      ? 'border-blue-500 text-white bg-blue-500/20'
                       : 'border-white/20 text-gray-400'
                   }`}
                 >
@@ -510,7 +525,7 @@ export default function HomePage() {
                   onClick={() => setTemplateTab('custom')}
                   className={`text-xs px-3 py-1 rounded-full border ${
                     templateTab === 'custom'
-                      ? 'border-indigo-500 text-white bg-indigo-500/20'
+                      ? 'border-blue-500 text-white bg-blue-500/20'
                       : 'border-white/20 text-gray-400'
                   }`}
                 >

@@ -53,7 +53,7 @@ export default function FeatureWorkbench({ onAction, activePanel }: Props) {
     <div className="w-full max-w-5xl mb-12">
       <div className="mb-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Sparkles size={18} className="text-purple-400" />
+          <Sparkles size={18} className="text-cyan-400" />
           {t('featureWorkbench')}
         </h2>
         <p className="text-xs text-gray-400 mt-1">{t('featureWorkbenchHintInternal')}</p>
@@ -69,18 +69,18 @@ export default function FeatureWorkbench({ onAction, activePanel }: Props) {
               onClick={() => onAction(item.id)}
               className={`text-left p-4 rounded-xl border transition-all ${
                 active
-                  ? 'border-purple-500/60 bg-purple-500/10'
-                  : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-indigo-400/40'
+                  ? 'border-cyan-500/60 bg-cyan-500/10'
+                  : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-blue-400/40'
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-white/5 shrink-0">
-                  <Icon size={18} className="text-indigo-300" />
+                  <Icon size={18} className="text-blue-300" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-white">{t(item.titleKey)}</div>
                   <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{t(item.descKey)}</p>
-                  <span className="inline-block mt-2 text-[10px] text-indigo-300">{t('openInApp')}</span>
+                  <span className="inline-block mt-2 text-[10px] text-blue-300">{t('openInApp')}</span>
                 </div>
               </div>
             </button>

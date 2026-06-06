@@ -61,7 +61,7 @@ export default function TemplatePreviewCard({
       ref={rootRef}
       className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all bg-[#1a1828] ${
         compact ? 'aspect-[3/4]' : 'aspect-[9/16]'
-      } ${selected ? 'ring-2 ring-purple-500' : 'hover:ring-2 hover:ring-purple-500/60'}`}
+      } ${selected ? 'ring-2 ring-cyan-500' : 'hover:ring-2 hover:ring-cyan-500/60'}`}
       onClick={onSelect}
     >
       {coverImage && (
@@ -89,7 +89,7 @@ export default function TemplatePreviewCard({
         />
       ) : (
         !coverImage && (
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 via-purple-900/60 to-pink-900/50" />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-cyan-900/60 to-cyan-900/50" />
         )
       )}
 
@@ -145,7 +145,7 @@ export default function TemplatePreviewCard({
               e.stopPropagation();
               onSelect();
             }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-600/95 text-xs text-white"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-cyan-600/95 text-xs text-white"
           >
             <Sparkles size={14} /> {t('useTemplate')}
           </button>

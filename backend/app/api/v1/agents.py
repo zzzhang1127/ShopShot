@@ -172,7 +172,7 @@ def run_video_agent(
 
     duration = body.duration if body and body.duration else 20
     if body:
-        from app.models import Project
+        from app.models import Project, ProjectStatus
 
         project = db.get(Project, project_id)
         if project:
@@ -182,6 +182,7 @@ def run_video_agent(
                 project.target_ratio = body.target_ratio
             if body.target_resolution:
                 project.target_resolution = body.target_resolution
+            project.status = ProjectStatus.GENERATING
             db.commit()
         if body.pipeline_preset == "asset_based":
             _apply_asset_based_mapping(db, project_id, script.id)
@@ -205,7 +206,7 @@ def run_quick_agent(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    from app.models import Project
+    from app.models import Project, ProjectStatus
 
     project = db.get(Project, project_id)
     if project:
@@ -215,6 +216,7 @@ def run_quick_agent(
             project.target_ratio = body.target_ratio
         if body.target_resolution:
             project.target_resolution = body.target_resolution
+        project.status = ProjectStatus.GENERATING
         db.commit()
 
     # 快捷模式也必须遵守 Director → Script → Video → PostProcess 全链路。
