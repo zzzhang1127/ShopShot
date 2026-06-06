@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, FolderOpen, Image as ImageIcon, Video, Music, LayoutTemplate, Sparkles, Globe } from 'lucide-react';
+import { Home, FolderOpen, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { t, getLang, setLang, subscribe } from '../lib/i18n';
 import { useEffect, useState } from 'react';
 
@@ -7,9 +7,6 @@ const navItems = [
   { icon: Home, labelKey: 'home', path: '/' },
   { icon: FolderOpen, labelKey: 'projects', path: '/projects' },
   { icon: ImageIcon, labelKey: 'library', path: '/library' },
-  { icon: Video, labelKey: 'videos', path: '/videos' },
-  { icon: Music, labelKey: 'audio', path: '/audio' },
-  { icon: LayoutTemplate, labelKey: 'templates', path: '/templates', badge: 'newBadge' },
 ];
 
 export default function AppShell({
@@ -71,10 +68,10 @@ export default function AppShell({
         <button
           type="button"
           onClick={() => setLang(getLang() === 'zh' ? 'en' : 'zh')}
-          className="w-10 h-10 rounded-full border border-white/20 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-          title={getLang() === 'zh' ? 'Switch to English' : '切换为中文'}
+          className="w-10 h-10 rounded-full border border-white/20 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors text-xs font-bold"
+          title={t('switchLang')}
         >
-          <Globe size={18} />
+          {getLang() === 'zh' ? 'EN' : '中'}
         </button>
       </aside>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

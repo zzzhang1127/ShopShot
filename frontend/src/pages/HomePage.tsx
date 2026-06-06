@@ -1,15 +1,14 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Image as ImageIcon,
   Video,
-  Music,
   LayoutTemplate,
   ChevronRight,
   CheckCircle2,
   X,
 } from 'lucide-react';
-import { t, tf, subscribe } from '../lib/i18n';
+import { t, subscribe } from '../lib/i18n';
 import {
   createProject,
   uploadAsset,
@@ -65,11 +64,6 @@ export default function HomePage() {
     fallbackCatalogTemplates()
   );
   const [catalogTotal, setCatalogTotal] = useState(() => fallbackCatalogTemplates().length);
-  const [catalogTarget, setCatalogTarget] = useState(200);
-  const [catalogExpanding, setCatalogExpanding] = useState(false);
-  const [videosGenerated, setVideosGenerated] = useState(0);
-  const [videoGenEnabled, setVideoGenEnabled] = useState(false);
-  const [videoGenInterval, setVideoGenInterval] = useState(30);
   const [catalogCategories, setCatalogCategories] = useState<CategoryChip[]>(() =>
     categoriesFromShowcase(true)
   );
@@ -107,7 +101,7 @@ export default function HomePage() {
     }
   }, [uploadedFile]);
 
-  const loadCatalog = async (append = false) => {
+  const loadCatalog = useCallback(async (append = false) => {
     if (templateTab !== 'official') return;
     setCatalogLoading(true);
     try {
@@ -120,11 +114,6 @@ export default function HomePage() {
       const mapped = page.items.map((item) => mapCatalogItem(item));
       setCatalogTemplates((prev) => (append ? [...prev, ...mapped] : mapped));
       setCatalogTotal(page.total);
-      setCatalogTarget(page.stats.target);
-      setCatalogExpanding(page.stats.expanding);
-      setVideosGenerated(page.stats.videos_generated ?? 0);
-      setVideoGenEnabled(page.stats.video_gen_enabled ?? false);
-      setVideoGenInterval(page.stats.video_gen_interval_seconds ?? 30);
       const merged = mergeCategoryMedia(page.stats.categories);
       setCatalogCategories(merged.length > 0 ? merged : categoriesFromShowcase(true));
       setCatalogOffline(false);
@@ -141,31 +130,14 @@ export default function HomePage() {
     } finally {
       setCatalogLoading(false);
     }
-  };
+  }, [templateTab, catalogTemplates.length, categoryFilter]);
 
   useEffect(() => {
     if (templateTab === 'official') {
       void loadCatalog(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateTab, categoryFilter]);
+  }, [loadCatalog, templateTab]);
 
-  useEffect(() => {
-    if (templateTab !== 'official') return;
-    const timer = setInterval(() => {
-      listTemplateCatalog({ limit: 1, offset: 0 })
-        .then((page) => {
-          setCatalogTotal(page.stats.total);
-          setCatalogTarget(page.stats.target);
-          setCatalogExpanding(page.stats.expanding);
-          setVideosGenerated(page.stats.videos_generated ?? 0);
-          setVideoGenEnabled(page.stats.video_gen_enabled ?? false);
-          setVideoGenInterval(page.stats.video_gen_interval_seconds ?? 30);
-        })
-        .catch(() => {});
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [templateTab]);
 
   useEffect(() => {
     listModelCapabilities()
@@ -370,8 +342,8 @@ export default function HomePage() {
 
         <div className="relative z-10 flex flex-col items-center pt-12 px-8 w-full min-h-full">
           <h1 
-            className="text-4xl md:text-6xl font-bold text-center tracking-tight leading-tight mb-5 drop-shadow-2xl"
-            style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Oswald', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif", letterSpacing: '0.05em' }}
+            className="text-4xl md:text-6xl font-black text-center tracking-tight leading-tight mb-5 drop-shadow-2xl"
+            style={{ fontFamily: "'Orbitron', 'Noto Sans SC', 'Microsoft YaHei', sans-serif", letterSpacing: '0.05em' }}
           >
             <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent">
               {t('heroTitle1')}
@@ -425,6 +397,7 @@ export default function HomePage() {
               onAspectRatioChange={setAspectRatio}
               duration={duration}
               onDurationChange={setDuration}
+              placeholder={mediaTab === 'image' ? t('searchPlaceholderImage') : t('searchPlaceholderVideo')}
               showTemplatesTab
             />
           </div>
@@ -505,7 +478,7 @@ export default function HomePage() {
                   </span>
                   {templateTab === 'official' && catalogTotal > 0 && (
                     <span className="text-xs font-normal text-gray-500">
-                      {t('templateCatalogCount').replace('{total}', String(catalogTotal))}
+                      {t('templateCatalogCount').replace('{total}', String(allTemplates.length))}
                     </span>
                   )}
                 </h2>
@@ -587,7 +560,7 @@ export default function HomePage() {
                     />
                   ))}
                 </div>
-                {templateTab === 'official' && !catalogOffline && catalogTemplates.length < catalogTotal && (
+                {templateTab === 'official' && !catalogOffline && allTemplates.length < catalogTotal && (
                   <div className="flex justify-center mt-8">
                     <button
                       type="button"
@@ -597,10 +570,7 @@ export default function HomePage() {
                     >
                       {catalogLoading
                         ? t('loading')
-                        : tf('loadMoreTemplates', {
-                            loaded: catalogTemplates.length,
-                            total: catalogTotal,
-                          })}
+                        : t('loadMoreTemplates').replace('{loaded}', String(allTemplates.length)).replace('{total}', String(catalogTotal))}
                     </button>
                   </div>
                 )}

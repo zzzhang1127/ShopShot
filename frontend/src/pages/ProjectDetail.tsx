@@ -177,8 +177,12 @@ export default function ProjectDetail() {
   }, [projectId, loadShotsForScript, routeState?.activeScriptId]);
 
   useEffect(() => {
-    if (routeState?.initialDuration) setDuration(routeState.initialDuration);
-    if (routeState?.initialRatio) setAspectRatio(routeState.initialRatio);
+    if (routeState?.initialDuration) {
+      setDuration(routeState.initialDuration);
+    }
+    if (routeState?.initialRatio) {
+      setAspectRatio(routeState.initialRatio);
+    }
     if (routeState?.pipelinePreset) {
       setPipelinePreset(routeState.pipelinePreset);
       if (routeState.pipelinePreset !== 'quick_create') {
@@ -508,7 +512,7 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="h-screen bg-[#0B0A16] text-white flex items-center justify-center">
+      <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">
         {t('loading')}
       </div>
     );
@@ -517,11 +521,11 @@ export default function ProjectDetail() {
   const busy = loading || (task != null && task.status !== 'succeeded' && task.status !== 'failed');
 
   return (
-    <div className="flex h-screen bg-[#0B0A16] text-gray-300 font-sans overflow-hidden" key={langTick}>
+    <div className="flex h-screen bg-[#09090b] text-gray-300 font-sans overflow-hidden" key={langTick}>
       <MediaLightbox media={preview} onClose={() => setPreview(null)} />
 
       {/* 左侧：共用 — 素材 + 比例 + 时长 */}
-      <aside className="w-[280px] bg-[#13121F] border-r border-white/5 flex flex-col p-5 overflow-y-auto shrink-0">
+      <aside className="w-[280px] bg-black/40 border-r border-white/5 flex flex-col p-5 overflow-y-auto shrink-0">
         <Link
           to="/projects"
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors mb-6"

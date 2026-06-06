@@ -8,7 +8,6 @@ import {
   listLibraryAssets,
   listLibraryScripts,
   listLibraryVideos,
-  listModelCapabilities,
   listTemplateCatalog,
 } from '../api/client';
 import { t, subscribe } from '../lib/i18n';
@@ -24,7 +23,7 @@ import TemplatePreviewCard from '../components/TemplatePreviewCard';
 import VideoThumbnail from '../components/VideoThumbnail';
 import AppShell from '../components/AppShell';
 
-type LibTab = 'assets' | 'videos' | 'audio' | 'scripts' | 'templates';
+type LibTab = 'assets' | 'videos' | 'images' | 'audio' | 'scripts' | 'templates';
 
 function assetUrl(relative: string) {
   if (relative.startsWith('http')) return relative;
@@ -38,12 +37,13 @@ export default function LibrariesPage() {
   const [searchParams] = useSearchParams();
 
   const tab: LibTab = useMemo(() => {
-    if (location.pathname === '/templates') return 'templates';
-    if (location.pathname === '/videos') return 'videos';
-    if (location.pathname === '/audio') return 'audio';
+    if (searchParams.get('tab') === 'templates') return 'templates';
+    if (searchParams.get('tab') === 'videos') return 'videos';
+    if (searchParams.get('tab') === 'images') return 'images';
+    if (searchParams.get('tab') === 'audio') return 'audio';
     if (searchParams.get('tab') === 'scripts') return 'scripts';
     return 'assets';
-  }, [location.pathname, searchParams]);
+  }, [searchParams]);
 
   const [, bumpLang] = useState(0);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -55,16 +55,6 @@ export default function LibrariesPage() {
   const [projectNames, setProjectNames] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<PreviewMedia | null>(null);
-  const [models, setModels] = useState<
-    Array<{
-      id: string;
-      name: string;
-      role: string;
-      configured: boolean;
-      endpoint_hint: string;
-      notes: string;
-    }>
-  >([]);
 
   useEffect(() => {
     const unsub = subscribe(() => bumpLang((n) => n + 1));
@@ -79,8 +69,8 @@ export default function LibrariesPage() {
       const names = await getLibraryProjectsMap();
       setProjectNames(names);
 
-      if (tab === 'assets' || tab === 'audio') {
-        const type = tab === 'audio' ? 'audio' : undefined;
+      if (tab === 'assets' || tab === 'audio' || tab === 'images') {
+        const type = tab === 'audio' ? 'audio' : tab === 'images' ? 'image' : undefined;
         setAssets(await listLibraryAssets({ limit: 100, type }));
       }
       if (tab === 'videos') {
@@ -96,11 +86,6 @@ export default function LibrariesPage() {
         setOfficialTemplates(page.items.map((item) => mapCatalogItem(item)));
         setCatalogTotal(page.total);
       }
-      if (tab === 'assets') {
-        listModelCapabilities()
-          .then(setModels)
-          .catch(() => setModels([]));
-      }
     } catch (err: unknown) {
       alert(formatApiError(err));
     } finally {
@@ -115,10 +100,11 @@ export default function LibrariesPage() {
   const tabs: { id: LibTab; label: string; path: string }[] = useMemo(
     () => [
       { id: 'assets', label: t('library'), path: '/library' },
-      { id: 'videos', label: t('videos'), path: '/videos' },
-      { id: 'audio', label: t('audio'), path: '/audio' },
+      { id: 'videos', label: t('videos'), path: '/library?tab=videos' },
+      { id: 'images', label: t('image'), path: '/library?tab=images' },
+      { id: 'audio', label: t('audio'), path: '/library?tab=audio' },
       { id: 'scripts', label: t('script'), path: '/library?tab=scripts' },
-      { id: 'templates', label: t('templates'), path: '/templates' },
+      { id: 'templates', label: t('templates'), path: '/library?tab=templates' },
     ],
     []
   );
@@ -153,15 +139,17 @@ export default function LibrariesPage() {
   const displayAssets =
     tab === 'audio'
       ? assets.filter((a) => a.type === 'audio')
-      : tab === 'videos'
-        ? assets.filter((a) => a.type === 'video')
-        : tab === 'assets'
-          ? assets
-          : [];
+      : tab === 'images'
+        ? assets.filter((a) => a.type === 'image')
+        : tab === 'videos'
+          ? assets.filter((a) => a.type === 'video')
+          : tab === 'assets'
+            ? assets
+            : [];
 
   return (
     <AppShell title={t('libraryHubTitle')}>
-      <div className="flex-1 overflow-y-auto bg-[#0B0A16] text-gray-300">
+      <div className="flex-1 overflow-y-auto bg-[#09090b] text-gray-300">
         <MediaLightbox media={preview} onClose={() => setPreview(null)} />
 
         <div className="flex gap-2 px-6 py-4 border-b border-white/5 overflow-x-auto">
@@ -184,49 +172,15 @@ export default function LibrariesPage() {
         <main className="p-6 max-w-6xl mx-auto">
         {loading && <p className="text-sm text-gray-500">{t('loading')}</p>}
 
-        {!loading && tab === 'assets' && models.length > 0 && (
-          <section className="mb-8 rounded-2xl border border-white/10 bg-[#13121F] p-5">
-            <h2 className="text-sm font-bold text-white mb-1">{t('modelsTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-4">{t('modelsHint')}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {models.map((m) => (
-                <div
-                  key={m.id}
-                  className="rounded-xl border border-white/10 bg-[#1C1B2B] p-4"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-sm font-semibold text-white">{m.name}</span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full ${
-                        m.configured
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-gray-500/20 text-gray-400'
-                      }`}
-                    >
-                      {m.configured ? t('modelConfigured') : t('modelNotConfigured')}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-blue-300/80 mb-1">{m.role}</p>
-                  {m.endpoint_hint && (
-                    <p className="text-[10px] text-gray-500 truncate" title={m.endpoint_hint}>
-                      {m.endpoint_hint}
-                    </p>
-                  )}
-                  {m.notes && <p className="text-[10px] text-gray-600 mt-2">{m.notes}</p>}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
-        {!loading && (tab === 'assets' || tab === 'videos' || tab === 'audio') && (
+        {!loading && (tab === 'assets' || tab === 'videos' || tab === 'audio' || tab === 'images') && (
           <>
             <p className="text-xs text-gray-500 mb-4">{t('libraryAssetsHint')}</p>
             {displayAssets.length === 0 ? (
               <p className="text-sm text-gray-600">{t('noAssets')}</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                {displayAssets.map((a) => (
+                {displayAssets.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map((a) => (
                   <button
                     key={a.id}
                     type="button"
@@ -237,7 +191,7 @@ export default function LibrariesPage() {
                         title: a.name,
                       })
                     }
-                    className="text-left rounded-xl border border-white/10 bg-[#13121F] overflow-hidden hover:border-blue-500/40"
+                    className="text-left rounded-xl border border-white/10 bg-white/5 overflow-hidden hover:border-blue-500/40"
                   >
                     {a.type === 'image' && (
                       <img src={assetUrl(a.url)} alt="" className="w-full aspect-square object-cover" />
@@ -246,7 +200,7 @@ export default function LibrariesPage() {
                       <VideoThumbnail src={assetUrl(a.url)} />
                     )}
                     {a.type === 'audio' && (
-                      <div className="aspect-square bg-[#1C1B2B] flex items-center justify-center">
+                      <div className="aspect-square bg-white/5 flex items-center justify-center">
                         <Music size={28} className="text-green-400" />
                       </div>
                     )}
@@ -275,8 +229,8 @@ export default function LibrariesPage() {
               <>
                 <h2 className="text-sm font-semibold text-white mt-10 mb-3">{t('historyVideos')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {videos.map((v) => (
-                    <div key={v.id} className="rounded-xl border border-white/10 bg-[#13121F] overflow-hidden">
+                  {videos.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map((v) => (
+                    <div key={v.id} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
                       <button
                         type="button"
                         onClick={() =>
@@ -326,10 +280,10 @@ export default function LibrariesPage() {
               <p className="text-sm text-gray-600">{t('noScript')}</p>
             ) : (
               <div className="space-y-2">
-                {scripts.map((sc) => (
+                {scripts.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map((sc) => (
                   <div
                     key={sc.id}
-                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/10 bg-[#13121F]"
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5"
                   >
                     <div>
                       <div className="text-sm font-medium text-white flex items-center gap-2">

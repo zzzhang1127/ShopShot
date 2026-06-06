@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import {
   Image as ImageIcon,
   Video,
-  Music,
   LayoutTemplate,
   ImagePlus,
   Settings2,

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { t } from '../lib/i18n';
 import type { CategoryChip } from '../lib/categoryShowcase';
 
 type Props = {

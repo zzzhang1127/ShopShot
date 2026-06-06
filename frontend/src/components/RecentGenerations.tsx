@@ -1,4 +1,4 @@
-import { RefreshCw, MoreHorizontal, Film } from 'lucide-react';
+import { RefreshCw, Film } from 'lucide-react';
 import { t } from '../lib/i18n';
 import type { Video as VideoType } from '../types';
 

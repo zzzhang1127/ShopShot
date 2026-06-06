@@ -67,16 +67,25 @@ export default function ProjectList() {
             </div>
           ) : (
             <div className="grid gap-4">
-              {projects.map((p) => (
+              {projects.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map((p) => (
                 <Link
                   key={p.id}
                   to={`/projects/${p.id}`}
                   className="block p-5 rounded-xl bg-white/5 border border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.07] transition-all"
                 >
-                  <div className="font-semibold text-lg">{p.name}</div>
-                  <div className="text-sm text-gray-400 mt-1">
-                    {t('status')}: {t(`status_${p.status.toLowerCase()}`)} | {t('mode')}: {t(`mode_${p.video_mode || 'product_show'}`)} |{' '}
-                    {new Date(p.created_at).toLocaleString()}
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-semibold text-lg line-clamp-1 flex-1 mr-4">{p.name}</div>
+                    <div className="text-xs text-gray-500 whitespace-nowrap">
+                      {new Date(p.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 rounded bg-white/10 text-gray-300">
+                      {t('status')}: {t(`status_${p.status.toLowerCase()}`)}
+                    </span>
+                    <span className="px-2 py-1 rounded bg-white/10 text-gray-300">
+                      {t('mode')}: {t(`mode_${p.video_mode || 'product_show'}`)}
+                    </span>
                   </div>
                 </Link>
               ))}
