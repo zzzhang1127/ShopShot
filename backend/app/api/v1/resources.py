@@ -5,6 +5,8 @@ from fastapi import APIRouter
 from app.config import get_settings
 from app.schemas.common import ApiResponse
 from app.schemas.resources import ResourceItem, ModelCapabilityRead
+from app.schemas.templates import TemplateCatalogPage, TemplateCatalogStats, TemplateEntryRead
+from app.services.template_catalog_service import ensure_catalog, get_stats, list_templates
 
 router = APIRouter()
 settings = get_settings()
@@ -64,6 +66,35 @@ def list_template_resources():
             )
         )
     return ApiResponse(data=items)
+
+
+@router.get("/resources/template-catalog/stats", response_model=ApiResponse[TemplateCatalogStats])
+def template_catalog_stats():
+    ensure_catalog()
+    return ApiResponse(data=TemplateCatalogStats(**get_stats()))
+
+
+@router.get("/resources/template-catalog", response_model=ApiResponse[TemplateCatalogPage])
+def template_catalog_list(
+    limit: int = 48,
+    offset: int = 0,
+    category: str | None = None,
+):
+    ensure_catalog()
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+    rows, total = list_templates(limit=limit, offset=offset, category=category)
+    stats = TemplateCatalogStats(**get_stats())
+    items = [TemplateEntryRead(**t) for t in rows]
+    return ApiResponse(
+        data=TemplateCatalogPage(
+            total=total,
+            limit=limit,
+            offset=offset,
+            items=items,
+            stats=stats,
+        )
+    )
 
 
 @router.get("/resources/bgm", response_model=ApiResponse[list[ResourceItem]])

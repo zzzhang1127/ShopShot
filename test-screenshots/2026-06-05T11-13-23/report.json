@@ -1,0 +1,145 @@
+{
+  "base": "http://localhost:5173",
+  "screenshotDir": "D:\\FILE\\ShopShot\\test-screenshots\\2026-06-05T11-13-23",
+  "summary": {
+    "pass": 19,
+    "warn": 3,
+    "fail": 4
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": [],
+  "steps": [
+    {
+      "step": "首页 Hero 标题",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "创作 Prompt 输入框",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "导航 → projects",
+      "status": "pass",
+      "detail": "http://localhost:5173/projects"
+    },
+    {
+      "step": "导航 → library",
+      "status": "pass",
+      "detail": "http://localhost:5173/library"
+    },
+    {
+      "step": "导航 → videos",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n  - waiting for locator('aside nav button').filter({ hasText: /视频|Videos/i }).first() to be visible\n"
+    },
+    {
+      "step": "导航 → audio",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n  - waiting for locator('aside nav button').filter({ hasText: /音频|Audio/i }).first() to be visible\n"
+    },
+    {
+      "step": "导航 → templates",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n  - waiting for locator('aside nav button').filter({ hasText: /模板|Templates/i }).first() to be visible\n"
+    },
+    {
+      "step": "导航 → home",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n  - waiting for locator('aside nav button').filter({ hasText: /首页|Home/i }).first() to be visible\n"
+    },
+    {
+      "step": "创作功能工作台区块",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "工作台入口按钮",
+      "status": "pass",
+      "detail": "9 个"
+    },
+    {
+      "step": "工作台 → API 配置弹窗",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "Prompt Tab /图片|Image/i",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "Prompt Tab /视频|Video/i",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "Prompt Tab /音频|Audio/i",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "模板卡片渲染",
+      "status": "warn",
+      "detail": "未找到模板卡片"
+    },
+    {
+      "step": "模板数量统计",
+      "status": "warn",
+      "detail": "未显示数量"
+    },
+    {
+      "step": "项目列表返回键",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "新建项目按钮",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "资源中心 Tab /videos",
+      "status": "pass",
+      "detail": "http://localhost:5173/videos"
+    },
+    {
+      "step": "资源中心 Tab /audio",
+      "status": "pass",
+      "detail": "http://localhost:5173/audio"
+    },
+    {
+      "step": "资源中心 Tab /library?tab=scripts",
+      "status": "pass",
+      "detail": "http://localhost:5173/library?tab=scripts"
+    },
+    {
+      "step": "资源中心 Tab /templates",
+      "status": "pass",
+      "detail": "http://localhost:5173/templates"
+    },
+    {
+      "step": "新建项目表单",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "语言切换按钮",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "step": "浏览器 Console 错误",
+      "status": "warn",
+      "detail": "1 条"
+    },
+    {
+      "step": "页面 JS 异常",
+      "status": "pass",
+      "detail": "无"
+    }
+  ]
+}

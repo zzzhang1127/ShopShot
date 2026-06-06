@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -18,12 +19,20 @@ from app.api.v1 import assets, scripts, shots, generations, videos, agents, proj
 
 settings = get_settings()
 
-FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
+TEMPLATES_PUBLIC = PROJECT_ROOT / "frontend" / "public" / "templates"
 
 init_db()
 
 
 def _health_payload():
+    from app.services.template_catalog_service import get_stats
+
+    try:
+        tpl_stats = get_stats()
+    except Exception:
+        tpl_stats = {"total": 0, "target": settings.template_expand_target, "expanding": False}
     return {
         "status": "ok",
         "mock_mode": settings.mock_mode,
@@ -32,17 +41,64 @@ def _health_payload():
         "comfyui_configured": bool(settings.comfyui_url),
         "volc_api_key_configured": bool(settings.volc_api_key),
         "storage": str(STORAGE_ROOT),
+        "template_catalog_total": tpl_stats.get("total", 0),
+        "template_expand_enabled": settings.template_expand_enabled,
     }
 
 
 print(
     f"[ShopShot] mock_mode={settings.mock_mode} "
-    f"seedance_ep={'yes' if settings.doubao_seedance_ep else 'NO'}"
+    f"seedance_ep={'yes' if settings.doubao_seedance_ep else 'NO'} "
+    f"template_expand={'on' if settings.template_expand_enabled else 'off'} "
+    f"template_video_gen={'on' if settings.template_video_gen_enabled else 'off'}"
 )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import asyncio
+    import logging
+
+    from app.services.template_catalog_service import ensure_catalog
+    from app.services.template_expander import expander_loop
+    from app.services.template_video_gen import video_gen_loop
+
+    logger = logging.getLogger("shopshot.templates")
+    stop = asyncio.Event()
+    expander_task = None
+    video_gen_task = None
+
+    try:
+        ensure_catalog()
+        logger.info("Template catalog ready (min=%s)", settings.template_catalog_min_count)
+    except Exception as exc:
+        logger.warning("Template catalog bootstrap failed: %s", exc)
+
+    if settings.template_expand_enabled:
+        expander_task = asyncio.create_task(expander_loop(stop))
+        
+    if settings.template_video_gen_enabled:
+        video_gen_task = asyncio.create_task(video_gen_loop(stop))
+
+    yield
+
+    stop.set()
+    if expander_task:
+        try:
+            await expander_task
+        except asyncio.CancelledError:
+            pass
+    if video_gen_task:
+        try:
+            await video_gen_task
+        except asyncio.CancelledError:
+            pass
+
 
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -75,6 +131,9 @@ def api_health():
 
 
 app.mount("/files", StaticFiles(directory=str(STORAGE_ROOT)), name="files")
+
+if TEMPLATES_PUBLIC.exists():
+    app.mount("/templates", StaticFiles(directory=str(TEMPLATES_PUBLIC)), name="templates")
 
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")

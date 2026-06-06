@@ -5,7 +5,14 @@ export type PreviewMedia = {
   url: string;
   type: 'image' | 'video' | 'audio';
   title?: string;
+  poster?: string;
 };
+
+function resolveMediaUrl(url: string): string {
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return url;
+  return `/files/${url}`;
+}
 
 export default function MediaLightbox({
   media,
@@ -16,7 +23,8 @@ export default function MediaLightbox({
 }) {
   if (!media) return null;
 
-  const src = media.url.startsWith('http') ? media.url : `/files/${media.url}`;
+  const src = resolveMediaUrl(media.url);
+  const poster = media.poster ? resolveMediaUrl(media.poster) : undefined;
 
   return (
     <div
@@ -51,6 +59,7 @@ export default function MediaLightbox({
         ) : (
           <video
             src={src}
+            poster={poster}
             controls
             autoPlay
             className="max-h-[80vh] max-w-full rounded-xl shadow-2xl"

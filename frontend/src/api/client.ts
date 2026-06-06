@@ -358,3 +358,38 @@ export async function listModelCapabilities() {
     notes: string;
   }[];
 }
+
+export async function listTemplateCatalog(opts?: {
+  limit?: number;
+  offset?: number;
+  category?: string;
+}) {
+  const q = new URLSearchParams();
+  if (opts?.limit != null) q.set('limit', String(opts.limit));
+  if (opts?.offset != null) q.set('offset', String(opts.offset));
+  if (opts?.category) q.set('category', opts.category);
+  const res = await client.get(`/resources/template-catalog?${q.toString()}`);
+  return res.data.data as {
+    total: number;
+    limit: number;
+    offset: number;
+    items: Array<Record<string, unknown>>;
+    stats: {
+      total: number;
+      target: number;
+      expanding: boolean;
+      last_expanded_at?: string | null;
+      videos_generated?: number;
+      videos_pending?: number;
+      video_gen_enabled?: boolean;
+      last_video_at?: string | null;
+      categories: Array<{
+        id: string;
+        label: string;
+        count: number;
+        preview_video: string;
+        cover_image: string;
+      }>;
+    };
+  };
+}

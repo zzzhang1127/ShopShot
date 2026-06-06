@@ -39,6 +39,13 @@ backend/uvicorn*.log
 *.db
 backend/shopshot.db
 
+# 模板目录（运行时生成，体积可增长）
+data/templates/catalog.json
+data/templates/catalog.json.tmp
+data/templates/video_gen_meta.json
+data/templates/expand_meta.json
+data/templates/expand_meta.json
+
 # AI 生成与上传产物
 outputs/
 outputs/**

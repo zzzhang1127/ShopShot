@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, FileText, LayoutTemplate, Music, Video } from 'lucide-react';
+import { ChevronLeft, FileText, Music } from 'lucide-react';
 import {
   createProject,
   formatApiError,
@@ -9,9 +9,10 @@ import {
   listLibraryScripts,
   listLibraryVideos,
   listModelCapabilities,
+  listTemplateCatalog,
 } from '../api/client';
 import { t, subscribe } from '../lib/i18n';
-import { officialTemplates, type OfficialTemplate } from '../lib/officialTemplates';
+import { mapCatalogItem, type OfficialTemplate } from '../lib/officialTemplates';
 import {
   listCustomTemplates,
   removeCustomTemplate,
@@ -19,11 +20,15 @@ import {
 } from '../lib/templateStore';
 import type { Asset, Script, Video as VideoType } from '../types';
 import MediaLightbox, { type PreviewMedia } from '../components/MediaLightbox';
+import TemplatePreviewCard from '../components/TemplatePreviewCard';
+import VideoThumbnail from '../components/VideoThumbnail';
 
 type LibTab = 'assets' | 'videos' | 'audio' | 'scripts' | 'templates';
 
 function assetUrl(relative: string) {
-  return relative.startsWith('http') ? relative : `/files/${relative}`;
+  if (relative.startsWith('http')) return relative;
+  if (relative.startsWith('/')) return relative;
+  return `/files/${relative}`;
 }
 
 export default function LibrariesPage() {
@@ -44,6 +49,8 @@ export default function LibrariesPage() {
   const [scripts, setScripts] = useState<Script[]>([]);
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [customTemplates, setCustomTemplates] = useState<UserTemplate[]>([]);
+  const [officialTemplates, setOfficialTemplates] = useState<OfficialTemplate[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState(0);
   const [projectNames, setProjectNames] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<PreviewMedia | null>(null);
@@ -84,6 +91,9 @@ export default function LibrariesPage() {
       }
       if (tab === 'templates') {
         setCustomTemplates(listCustomTemplates());
+        const page = await listTemplateCatalog({ limit: 120, offset: 0 });
+        setOfficialTemplates(page.items.map((item) => mapCatalogItem(item)));
+        setCatalogTotal(page.total);
       }
       if (tab === 'assets') {
         listModelCapabilities()
@@ -238,9 +248,7 @@ export default function LibrariesPage() {
                       <img src={assetUrl(a.url)} alt="" className="w-full aspect-square object-cover" />
                     )}
                     {a.type === 'video' && (
-                      <div className="aspect-square bg-black flex items-center justify-center">
-                        <Video size={28} className="text-indigo-400" />
-                      </div>
+                      <VideoThumbnail src={assetUrl(a.url)} />
                     )}
                     {a.type === 'audio' && (
                       <div className="aspect-square bg-[#1C1B2B] flex items-center justify-center">
@@ -271,26 +279,43 @@ export default function LibrariesPage() {
             {tab === 'videos' && videos.length > 0 && (
               <>
                 <h2 className="text-sm font-semibold text-white mt-10 mb-3">{t('historyVideos')}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {videos.map((v) => (
-                    <div key={v.id} className="rounded-xl border border-white/10 bg-[#13121F] p-3">
-                      <video src={assetUrl(v.url)} controls className="w-full rounded-lg" />
-                      <div className="mt-2 flex justify-between text-xs text-gray-500">
-                        <span>
-                          {v.project_id != null && projectNames[v.project_id]
-                            ? projectNames[v.project_id]
-                            : `Project #${v.project_id}`}
-                        </span>
-                        {v.created_at && <span>{new Date(v.created_at).toLocaleString()}</span>}
+                    <div key={v.id} className="rounded-xl border border-white/10 bg-[#13121F] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreview({
+                            url: v.url,
+                            type: 'video',
+                            title:
+                              v.project_id != null && projectNames[v.project_id]
+                                ? projectNames[v.project_id]
+                                : `Project #${v.project_id}`,
+                          })
+                        }
+                        className="w-full text-left"
+                      >
+                        <VideoThumbnail src={assetUrl(v.url)} aspect="video" />
+                      </button>
+                      <div className="p-3">
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>
+                            {v.project_id != null && projectNames[v.project_id]
+                              ? projectNames[v.project_id]
+                              : `Project #${v.project_id}`}
+                          </span>
+                          {v.created_at && <span>{new Date(v.created_at).toLocaleString()}</span>}
+                        </div>
+                        {v.project_id && (
+                          <Link
+                            to={`/projects/${v.project_id}`}
+                            className="inline-block mt-2 text-xs text-indigo-400 hover:underline"
+                          >
+                            {t('openProject')}
+                          </Link>
+                        )}
                       </div>
-                      {v.project_id && (
-                        <Link
-                          to={`/projects/${v.project_id}`}
-                          className="inline-block mt-2 text-xs text-indigo-400 hover:underline"
-                        >
-                          {t('openProject')}
-                        </Link>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -342,60 +367,57 @@ export default function LibrariesPage() {
         {!loading && tab === 'templates' && (
           <>
             <p className="text-xs text-gray-500 mb-4">{t('libraryTemplatesHint')}</p>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('officialTemplates')}</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase mb-3">
+              {t('officialTemplates')} ({catalogTotal})
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
               {officialTemplates.map((tpl) => (
-                <button
+                <TemplatePreviewCard
                   key={tpl.id}
-                  type="button"
-                  onClick={() => startFromTemplate(tpl)}
-                  className="text-left rounded-xl border border-white/10 overflow-hidden hover:border-indigo-500/50"
-                >
-                  <img src={tpl.coverImage} alt="" className="w-full aspect-[9/16] object-cover" />
-                  <div className="p-2 bg-[#13121F]">
-                    <div className="text-xs text-white font-medium truncate">{tpl.title}</div>
-                    <div className="text-[10px] text-gray-500">
-                      {tpl.duration}
-                      {t('seconds')}
-                    </div>
-                  </div>
-                </button>
+                  title={tpl.title}
+                  coverImage={tpl.coverImage}
+                  previewVideo={tpl.previewVideo}
+                  duration={tpl.duration}
+                  isNew={tpl.isNew}
+                  onSelect={() => startFromTemplate(tpl)}
+                  onPreview={() =>
+                    setPreview({
+                      url: tpl.previewVideo,
+                      type: 'video',
+                      title: tpl.title,
+                      poster: tpl.coverImage,
+                    })
+                  }
+                />
               ))}
             </div>
             <h2 className="text-xs font-semibold text-gray-500 uppercase mb-3">{t('myTemplates')}</h2>
             {customTemplates.length === 0 ? (
               <p className="text-sm text-gray-600">{t('noMyTemplates')}</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {customTemplates.map((tpl) => (
-                  <div key={tpl.id} className="rounded-xl border border-white/10 overflow-hidden bg-[#13121F]">
-                    {tpl.coverImage ? (
-                      <img src={tpl.coverImage} alt="" className="w-full aspect-[9/16] object-cover" />
-                    ) : (
-                      <div className="aspect-[9/16] bg-[#1C1B2B] flex items-center justify-center">
-                        <LayoutTemplate size={32} className="text-gray-600" />
-                      </div>
-                    )}
-                    <div className="p-2">
-                      <div className="text-xs text-white truncate">{tpl.title}</div>
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          type="button"
-                          onClick={() => startFromTemplate(tpl)}
-                          className="flex-1 text-[10px] py-1 rounded bg-indigo-600 text-white"
-                        >
-                          {t('startGenerating')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTemplate(tpl.id)}
-                          className="text-[10px] py-1 px-2 rounded bg-white/5 text-gray-400"
-                        >
-                          {t('removeTemplate')}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <TemplatePreviewCard
+                    key={tpl.id}
+                    title={tpl.title}
+                    coverImage={tpl.coverImage}
+                    previewVideo={tpl.previewVideo}
+                    duration={tpl.duration}
+                    onSelect={() => startFromTemplate(tpl)}
+                    onPreview={() => {
+                      if (tpl.previewVideo) {
+                        setPreview({
+                          url: tpl.previewVideo,
+                          type: 'video',
+                          title: tpl.title,
+                          poster: tpl.coverImage,
+                        });
+                      } else if (tpl.coverImage) {
+                        setPreview({ url: tpl.coverImage, type: 'image', title: tpl.title });
+                      }
+                    }}
+                    onRemove={() => handleRemoveTemplate(tpl.id)}
+                  />
                 ))}
               </div>
             )}

@@ -66,7 +66,10 @@ export default function CliprisePromptBar({
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const selectedModel = models.find((m) => m.id === selectedModelId) || models[0];
+  const configuredModels = models.filter((m) => m.configured);
+  const selectableModels = configuredModels.length > 0 ? configuredModels : models;
+  const selectedModel =
+    selectableModels.find((m) => m.id === selectedModelId) || selectableModels[0];
 
   const tabs = showTemplatesTab
     ? [...mediaTabs, { id: 'templates' as MediaTab, icon: LayoutTemplate, labelKey: 'tabTemplates' }]
@@ -134,19 +137,25 @@ export default function CliprisePromptBar({
 
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <div className="relative">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-gray-200 hover:border-purple-500/40"
-              onClick={() => {
-                const idx = models.findIndex((m) => m.id === selectedModelId);
-                const next = models[(idx + 1) % Math.max(models.length, 1)];
-                if (next) onModelChange(next.id);
-              }}
+            <Palette size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 pointer-events-none z-10" />
+            <select
+              value={selectedModel?.id || ''}
+              onChange={(e) => onModelChange(e.target.value)}
+              disabled={selectableModels.length === 0}
+              className="appearance-none pl-8 pr-8 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-gray-200 hover:border-purple-500/40 max-w-[200px] truncate cursor-pointer disabled:opacity-50"
+              title={t('selectModel')}
             >
-              <Palette size={14} className="text-purple-400" />
-              <span className="max-w-[120px] truncate">{selectedModel?.name || 'Model'}</span>
-              <ChevronDown size={12} className="text-gray-500" />
-            </button>
+              {selectableModels.length === 0 ? (
+                <option value="">{t('noModelsConfigured')}</option>
+              ) : (
+                selectableModels.map((m) => (
+                  <option key={m.id} value={m.id} className="bg-[#1a1828] text-white">
+                    {m.name}
+                  </option>
+                ))
+              )}
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
 
           <div className="relative">

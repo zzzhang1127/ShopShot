@@ -62,6 +62,18 @@ class Settings(BaseSettings):
     wan_video_model: str = "wan2.1-i2v-plus"
     wan_auto_reference_images: bool = True
 
+    # Template catalog (homepage 100+ 带货模板)
+    template_catalog_path: str = "data/templates/catalog.json"
+    template_catalog_min_count: int = 100
+    template_expand_enabled: bool = True
+    template_expand_target: int = 200
+    template_expand_interval_seconds: int = 120
+    template_expand_batch_size: int = 5
+
+    # Template video generation
+    template_video_gen_enabled: bool = False
+    template_video_gen_interval_seconds: int = 30
+
     model_config = SettingsConfigDict(
         env_file=str(_ENV_FILE) if _ENV_FILE.is_file() else None,
         env_file_encoding="utf-8",
