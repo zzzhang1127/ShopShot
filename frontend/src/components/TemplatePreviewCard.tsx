@@ -59,7 +59,7 @@ export default function TemplatePreviewCard({
   return (
     <div
       ref={rootRef}
-      className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all bg-[#1a1828] ${
+      className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all bg-black ${
         compact ? 'aspect-[3/4]' : 'aspect-[9/16]'
       } ${selected ? 'ring-2 ring-cyan-500' : 'hover:ring-2 hover:ring-cyan-500/60'}`}
       onClick={onSelect}

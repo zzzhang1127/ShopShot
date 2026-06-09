@@ -38,7 +38,7 @@ import {
   enhancePrompt,
   formatApiError,
 } from '../api/client';
-import { t, tf, tEnum, subscribe } from '../lib/i18n';
+import { t, tEnum, subscribe } from '../lib/i18n';
 import GenerationProgress from '../components/GenerationProgress';
 import ComfyWorkflowPanel from '../components/ComfyWorkflowPanel';
 import RecentGenerations from '../components/RecentGenerations';
@@ -123,6 +123,17 @@ export default function ProjectDetail() {
       unsub();
     };
   }, []);
+
+  const uniqueAssets = useMemo(() => {
+    const seen = new Set<string>();
+    return assets.filter((a) => {
+      // Deduplicate by name and type to avoid clutter
+      const key = `${a.type}-${a.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [assets]);
 
   const assetById = useMemo(() => {
     const m = new Map<number, Asset>();
@@ -295,7 +306,17 @@ export default function ProjectDetail() {
 
   const shotPreviewAsset = (shot: Shot): Asset | undefined => {
     const id = shot.reference_asset_id ?? shot.generated_image_asset_id;
-    return id ? assetById.get(id) : undefined;
+    if (id) {
+      return assetById.get(id);
+    }
+    // Fallback for the first shot if no reference asset is set yet
+    if (shot.sequence === 0) {
+      const firstUpload = uniqueAssets.find((a) => a.type === 'image' && (a.source || 'upload') === 'upload');
+      if (firstUpload) {
+        return firstUpload;
+      }
+    }
+    return undefined;
   };
 
   const startTask = (started: GenerationTask) => {
@@ -371,7 +392,7 @@ export default function ProjectDetail() {
     try {
       await persistProject();
       if (pipelinePreset === 'asset_based') {
-        const imageAssets = assets.filter((a) => a.type === 'image' && (a.source || 'upload') === 'upload');
+        const imageAssets = uniqueAssets.filter((a) => a.type === 'image' && (a.source || 'upload') === 'upload');
         if (imageAssets.length > 0) {
           for (let i = 0; i < shots.length; i += 1) {
             const shot = shots[i];
@@ -512,7 +533,7 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="h-screen bg-[#09090b] text-white flex items-center justify-center">
+      <div className="h-screen bg-black text-white flex items-center justify-center">
         {t('loading')}
       </div>
     );
@@ -521,11 +542,16 @@ export default function ProjectDetail() {
   const busy = loading || (task != null && task.status !== 'succeeded' && task.status !== 'failed');
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-gray-300 font-sans overflow-hidden" key={langTick}>
+    <div className="flex h-screen bg-black text-gray-300 font-sans overflow-hidden relative" key={langTick}>
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-black" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[120px]" />
+        <div className="absolute top-20 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]" />
+      </div>
       <MediaLightbox media={preview} onClose={() => setPreview(null)} />
 
       {/* 左侧：共用 — 素材 + 比例 + 时长 */}
-      <aside className="w-[280px] bg-black/40 border-r border-white/5 flex flex-col p-5 overflow-y-auto shrink-0">
+      <aside className="relative z-10 w-[280px] bg-black/80 backdrop-blur-md border-r border-white/5 flex flex-col p-5 overflow-y-auto shrink-0">
         <Link
           to="/projects"
           className="flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors mb-6"
@@ -547,7 +573,7 @@ export default function ProjectDetail() {
           <p className="text-[11px] text-gray-600 mb-3 leading-relaxed">{t('projectAssetsHint')}</p>
           <div className="flex gap-1.5 mb-3">
             <label
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-[#1C1B2B] border border-white/5 text-[10px] ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-white/5 border border-white/5 text-[10px] ${
                 busy ? 'opacity-40 pointer-events-none' : 'hover:border-blue-500/40 cursor-pointer'
               }`}
               title={t('uploadImage')}
@@ -563,7 +589,7 @@ export default function ProjectDetail() {
               />
             </label>
             <label
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-[#1C1B2B] border border-white/5 text-[10px] ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-white/5 border border-white/5 text-[10px] ${
                 busy ? 'opacity-40 pointer-events-none' : 'hover:border-blue-500/40 cursor-pointer'
               }`}
               title={t('uploadVideo')}
@@ -579,7 +605,7 @@ export default function ProjectDetail() {
               />
             </label>
             <label
-              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-[#1C1B2B] border border-white/5 text-[10px] ${
+              className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg bg-white/5 border border-white/5 text-[10px] ${
                 busy ? 'opacity-40 pointer-events-none' : 'hover:border-blue-500/40 cursor-pointer'
               }`}
               title={t('uploadBgm')}
@@ -596,13 +622,13 @@ export default function ProjectDetail() {
             </label>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {assets.map((a) => (
+            {uniqueAssets.map((a) => (
               <button
                 key={a.id}
                 type="button"
                 disabled={busy}
                 onClick={() => openAssetPreview(a)}
-                className="relative aspect-square rounded-lg overflow-hidden bg-[#1C1B2B] border border-white/5 hover:border-blue-500/60 hover:ring-2 hover:ring-blue-500/30 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="relative aspect-square rounded-lg overflow-hidden bg-white/5 border border-white/5 hover:border-blue-500/60 hover:ring-2 hover:ring-blue-500/30 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                 title={t('clickToPreview')}
               >
                 {a.type === 'image' ? (
@@ -620,7 +646,7 @@ export default function ProjectDetail() {
                 </span>
               </button>
             ))}
-            {assets.length === 0 && <div className="col-span-3 text-xs text-gray-600">{t('noAssets')}</div>}
+            {uniqueAssets.length === 0 && <div className="col-span-3 text-xs text-gray-600">{t('noAssets')}</div>}
           </div>
         </div>
 
@@ -637,8 +663,8 @@ export default function ProjectDetail() {
                 onClick={() => setAspectRatio(r)}
                 className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs transition-all ${
                   aspectRatio === r
-                    ? 'bg-[#212036] border-blue-500 text-white'
-                    : 'bg-[#1C1B2B] border-white/5 text-gray-500 hover:border-white/20'
+                    ? 'bg-blue-600/20 border-blue-500 text-white'
+                    : 'bg-white/5 border-white/5 text-gray-500 hover:border-white/20'
                 }`}
               >
                 {r === '9:16' ? <Smartphone size={16} /> : <Monitor size={16} />}
@@ -662,7 +688,7 @@ export default function ProjectDetail() {
               if (p?.shopshotMode === 'quick') setMode('quick');
               else setMode('advanced');
             }}
-            className="w-full mb-4 bg-[#1C1B2B] border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+            className="w-full mb-4 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
           >
             {PIXELLE_PIPELINES.map((p) => (
               <option key={p.id} value={p.id}>
@@ -673,7 +699,7 @@ export default function ProjectDetail() {
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
             {t('duration')}
           </label>
-          <div className="flex bg-[#1C1B2B] p-1 rounded-xl border border-white/5">
+          <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
             {[5, 10, 15, 20].map((d) => (
               <button
                 key={d}
@@ -681,7 +707,7 @@ export default function ProjectDetail() {
                 disabled={busy}
                 onClick={() => setDuration(d)}
                 className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
-                  duration === d ? 'bg-[#312E4F] text-white' : 'hover:bg-white/5'
+                  duration === d ? 'bg-blue-600/30 text-white' : 'hover:bg-white/5'
                 }`}
               >
                 {d}s
@@ -701,8 +727,8 @@ export default function ProjectDetail() {
       </aside>
 
       {/* 主区域 */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 flex items-center justify-between px-6 bg-[#13121F]/80 border-b border-white/5 shrink-0">
+      <main className="relative z-10 flex-1 flex flex-col overflow-hidden">
+        <header className="h-14 flex items-center justify-between px-6 bg-black/80 border-b border-white/5 shrink-0 backdrop-blur-md">
           <h1 className="text-base font-bold text-white">{t('aiCreation')}</h1>
           <span className="text-xs text-gray-500">{getPipeline(pipelinePreset) ? t(getPipeline(pipelinePreset)!.descKey) : ''}</span>
         </header>
@@ -812,7 +838,7 @@ export default function ProjectDetail() {
               onPreview={(url, title) => setPreview({ url, type: 'video', title })}
             />
 
-            <div className="rounded-2xl border border-white/10 bg-[#13121F] p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-3">
                 {t('projectAssets')}
               </div>
@@ -893,7 +919,7 @@ export default function ProjectDetail() {
                           if (item?.source) setSelectedBgmRoot(item.source);
                         }}
                         disabled={busy}
-                        className="min-w-[200px] flex-1 bg-[#1C1B2B] border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                        className="min-w-[200px] flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
                       >
                         <option value="">{t('bgmLibrary')}</option>
                         {bgmLibrary.map((b) => (
@@ -925,7 +951,7 @@ export default function ProjectDetail() {
 
             {/* 深度模式：分镜编辑 */}
             {(showDeepMode || mode === 'advanced') && (
-              <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-5 space-y-4">
+              <div className="rounded-2xl border border-blue-500/30 bg-white/5 p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
                     {t('modeAdvancedTitle')}
@@ -943,7 +969,7 @@ export default function ProjectDetail() {
                       type="button"
                       disabled={busy || scripts.length === 0}
                       onClick={handleGenerateVideo}
-                      className="px-4 py-2 rounded-lg bg-[#4F46E5] hover:bg-[#4338ca] text-white text-xs font-semibold disabled:opacity-50"
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-50"
                     >
                       {busy ? t('running') : t('generateVideo')}
                     </button>
@@ -986,7 +1012,7 @@ export default function ProjectDetail() {
                                 : 'border-white/10 cursor-default'
                             }`}
                           >
-                            <div className="aspect-[9/16] bg-[#1C1B2B] flex items-center justify-center">
+                            <div className="aspect-[9/16] bg-white/5 flex items-center justify-center">
                               {ref?.type === 'image' ? (
                                 <img
                                   src={assetUrl(ref.url)}
@@ -1017,7 +1043,7 @@ export default function ProjectDetail() {
                       {shots.map((shot) => (
                         <div
                           key={shot.id}
-                          className="p-4 rounded-xl bg-[#13121F] border border-white/10"
+                          className="p-4 rounded-xl bg-white/5 border border-white/10"
                         >
                           <div className="font-semibold text-sm text-white mb-2">
                             {t('shotLabel').replace('{n}', String(shot.sequence + 1))} ({tEnum('shotType', shot.type) || shot.type})
@@ -1039,7 +1065,7 @@ export default function ProjectDetail() {
                                     handleUpdateShot(shot.id, 'image_prompt', e.target.value)
                                   }
                                   rows={2}
-                                  className="w-full px-3 py-2 rounded-lg bg-[#1C1B2B] border border-white/10 text-sm text-white outline-none focus:border-blue-500 resize-none disabled:opacity-60"
+                                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white outline-none focus:border-blue-500 resize-none disabled:opacity-60"
                                 />
                               </div>
                               <div>
@@ -1051,7 +1077,7 @@ export default function ProjectDetail() {
                                     handleUpdateShot(shot.id, 'action_prompt', e.target.value)
                                   }
                                   rows={2}
-                                  className="w-full px-3 py-2 rounded-lg bg-[#1C1B2B] border border-white/10 text-sm text-white outline-none focus:border-blue-500 resize-none disabled:opacity-60"
+                                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white outline-none focus:border-blue-500 resize-none disabled:opacity-60"
                                 />
                               </div>
                             </div>
@@ -1073,13 +1099,13 @@ export default function ProjectDetail() {
             )}
 
             {loading && !task && (
-              <div className="p-5 rounded-2xl bg-[#13121F] border border-white/10">
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
                 <p className="text-sm text-gray-400">{t('generating')}…</p>
               </div>
             )}
 
             {/* 历史 — 共用 */}
-            <div className="rounded-2xl border border-white/10 bg-[#13121F] p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <h2 className="text-base font-bold text-white">{t('historyTitle')}</h2>
                 <div className="flex flex-wrap gap-2">
@@ -1116,7 +1142,7 @@ export default function ProjectDetail() {
               {videos.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                   {videos.map((v) => (
-                    <div key={v.id} className="p-3 rounded-xl bg-[#1C1B2B] border border-white/10">
+                    <div key={v.id} className="p-3 rounded-xl bg-white/5 border border-white/10">
                       <video
                         src={assetUrl(v.url)}
                         controls
@@ -1162,7 +1188,7 @@ export default function ProjectDetail() {
                         className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
                           sc.id === activeScriptId
                             ? 'border-blue-500/50 bg-blue-500/10'
-                            : 'border-white/10 bg-[#1C1B2B] hover:border-white/20'
+                            : 'border-white/10 bg-white/5 hover:border-white/20'
                         }`}
                       >
                         <div className="text-sm font-medium text-white">

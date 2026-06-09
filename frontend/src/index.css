@@ -10,7 +10,7 @@
     font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #09090b;
+    background: #000;
     color: #fff;
   }
   #root {

@@ -149,6 +149,8 @@ class VideoGenAgent:
                 img = result.scalars().first()
                 if img and self._is_reference_asset_valid(img):
                     first_frame = local_asset_to_image_url(img.url)
+                    shot.reference_asset_id = img.id
+                    self.db.commit()
 
             prompt = self._build_seedance_prompt(shot, project, shot_index, total_shots)
             if not prompt or len(prompt.strip()) < 3:

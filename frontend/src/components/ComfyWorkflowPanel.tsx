@@ -205,7 +205,7 @@ export default function ComfyWorkflowPanel({
       )}
 
       {workflows.length === 0 && status?.enabled && (
-        <div className="mb-4 rounded-xl border border-white/10 bg-[#1C1B2B] px-3 py-2 text-xs text-gray-400">
+        <div className="mb-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-400">
           {t('comfyNoWorkflows')}
         </div>
       )}
@@ -217,7 +217,7 @@ export default function ComfyWorkflowPanel({
             value={outputKind}
             onChange={(e) => setOutputKind(e.target.value as OutputKind)}
             disabled={disabled}
-            className="w-full bg-[#1C1B2B] border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
           >
             <option value="image">{t('outputImage')}</option>
             <option value="audio">{t('outputAudio')}</option>
@@ -230,7 +230,7 @@ export default function ComfyWorkflowPanel({
             value={selectedPath}
             onChange={(e) => handleSelectWorkflow(e.target.value)}
             disabled={disabled}
-            className="w-full bg-[#1C1B2B] border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
           >
             <option value="">{t('comfySelectPreset')}</option>
             {filteredWorkflows.map((w) => (
@@ -250,7 +250,7 @@ export default function ComfyWorkflowPanel({
           disabled={disabled}
           rows={3}
           placeholder={t('comfyPromptPlaceholder')}
-          className="w-full bg-[#1C1B2B] rounded-xl border border-white/10 px-3 py-2 text-white placeholder-gray-600 resize-none text-xs outline-none focus:border-emerald-500/60 disabled:opacity-60"
+          className="w-full bg-white/5 rounded-xl border border-white/10 px-3 py-2 text-white placeholder-gray-600 resize-none text-xs outline-none focus:border-emerald-500/60 disabled:opacity-60"
         />
       </div>
 
@@ -262,7 +262,7 @@ export default function ComfyWorkflowPanel({
           onChange={(e) => setSeed(e.target.value)}
           disabled={disabled}
           placeholder="42"
-          className="w-full bg-[#1C1B2B] border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
         />
       </div>
 
@@ -294,7 +294,7 @@ export default function ComfyWorkflowPanel({
             onChange={(e) => setWorkflowJson(e.target.value)}
             disabled={disabled}
             rows={8}
-            className="w-full h-32 bg-[#1C1B2B] rounded-xl border border-white/10 px-3 py-2 text-white placeholder-gray-600 resize-none text-xs font-mono outline-none focus:border-emerald-500/60 disabled:opacity-60"
+            className="w-full h-32 bg-white/5 rounded-xl border border-white/10 px-3 py-2 text-white placeholder-gray-600 resize-none text-xs font-mono outline-none focus:border-emerald-500/60 disabled:opacity-60"
           />
           <div className="mt-2 flex justify-end">
             <button

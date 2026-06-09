@@ -22,7 +22,7 @@ export default function RecentGenerations({
   if (videos.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#13121F]/80 p-5">
+    <section className="rounded-2xl border border-white/10 bg-black/80 p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-bold text-white">{t('recentGenerations')}</h2>
         <button
@@ -38,7 +38,7 @@ export default function RecentGenerations({
         {videos.slice(0, 6).map((v) => (
           <div
             key={v.id}
-            className="flex gap-4 p-3 rounded-xl bg-[#1C1B2B] border border-white/5 hover:border-cyan-500/30 transition-colors"
+            className="flex gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-500/30 transition-colors"
           >
             <button
               type="button"

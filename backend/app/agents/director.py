@@ -7,7 +7,6 @@ from app.config import get_settings
 from app.agents.script_agent import ScriptAgent
 from app.agents.video_gen_agent import VideoGenAgent
 from app.agents.postprocess_agent import PostProcessAgent
-from app.agents.visual_agent import VisualAgent
 
 settings = get_settings()
 
@@ -16,29 +15,6 @@ class DirectorAgent:
     def __init__(self, db: Session):
         self.db = db
         self.gen_service = GenerationService(db)
-
-    def _wan_prepare_shots(
-        self,
-        task_id: str,
-        project_id: int,
-        script_id: int,
-        project: Project,
-    ) -> None:
-        if not (settings.wan_image_enabled and settings.wan_auto_reference_images):
-            return
-
-        def _wan_progress(idx: int, total: int, step: str):
-            p = 6 + int((idx / max(total, 1)) * 4)
-            self.gen_service.update_status(task_id, TaskStatus.RUNNING, step=step, progress=p)
-
-        VisualAgent(self.db).prepare_shot_references(
-            project_id=project_id,
-            script_id=script_id,
-            product_info=project.product_info or project.name,
-            target_ratio=project.target_ratio or "9:16",
-            task_id=task_id,
-            on_progress=_wan_progress,
-        )
 
     def start_script_only(self, project_id: int) -> str:
         task = self.gen_service.create_task(
@@ -137,10 +113,7 @@ class DirectorAgent:
             self.gen_service.raise_if_cancelled(task_id)
             project = self.db.get(Project, project_id)
             if project:
-                self.gen_service.update_status(
-                    task_id, TaskStatus.RUNNING, step="wan_visual_prepare", progress=6
-                )
-                self._wan_prepare_shots(task_id, project_id, script_id, project)
+                pass
             self.gen_service.raise_if_cancelled(task_id)
             self.gen_service.update_status(
                 task_id, TaskStatus.RUNNING, step="video_generate", progress=10
@@ -381,10 +354,6 @@ class DirectorAgent:
                 task_id, TaskStatus.RUNNING, step="script_done", progress=20
             )
             self.gen_service.raise_if_cancelled(task_id)
-            self.gen_service.update_status(
-                task_id, TaskStatus.RUNNING, step="wan_visual_prepare", progress=22
-            )
-            self._wan_prepare_shots(task_id, project_id, script.id, project)
 
             video_agent = VideoGenAgent(self.db)
             video_agent.run(

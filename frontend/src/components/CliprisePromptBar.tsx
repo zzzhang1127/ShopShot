@@ -76,7 +76,7 @@ export default function CliprisePromptBar({
     : mediaTabs;
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 bg-[#1a1a1a] shadow-2xl overflow-hidden">
+    <div className="w-full rounded-2xl border border-white/10 bg-black/80 shadow-2xl overflow-hidden">
       <div className="flex items-start gap-3 p-4 pb-2">
         <button
           type="button"
@@ -149,7 +149,7 @@ export default function CliprisePromptBar({
                 <option value="">{t('noModelsConfigured')}</option>
               ) : (
                 selectableModels.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-[#1a1828] text-white">
+                  <option key={m.id} value={m.id} className="bg-black text-white">
                     {m.name}
                   </option>
                 ))
@@ -168,7 +168,7 @@ export default function CliprisePromptBar({
               <Settings2 size={16} />
             </button>
             {settingsOpen && onAspectRatioChange && onDurationChange && (
-              <div className="absolute right-0 top-full mt-2 z-30 w-56 p-3 rounded-xl bg-[#1a1828] border border-white/10 shadow-xl">
+              <div className="absolute right-0 top-full mt-2 z-30 w-56 p-3 rounded-xl bg-black border border-white/10 shadow-xl">
                 <p className="text-[10px] text-gray-500 uppercase mb-2">{t('aspectRatio')}</p>
                 <div className="flex gap-1 mb-3">
                   {(['9:16', '16:9'] as const).map((r) => (

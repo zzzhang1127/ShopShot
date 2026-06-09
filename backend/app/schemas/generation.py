@@ -25,6 +25,7 @@ class GenerationTaskRead(BaseModel):
 
 class TaskStatusRead(BaseModel):
     id: str
+    type: TaskType
     status: TaskStatus
     progress: int
     agent_name: Optional[str] = None

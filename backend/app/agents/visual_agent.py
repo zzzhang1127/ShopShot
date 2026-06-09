@@ -21,7 +21,8 @@ class VisualAgent:
 
   @property
   def enabled(self) -> bool:
-    return self.wan.configured
+    # Force disable Wan2.7 as per user request
+    return False
 
   def prepare_shot_references(
     self,

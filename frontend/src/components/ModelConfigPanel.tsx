@@ -66,8 +66,8 @@ export default function ModelConfigPanel({ open, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#13121F] shadow-2xl">
-        <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#13121F]">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-black shadow-2xl">
+        <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-black">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Key size={18} className="text-cyan-400" />
@@ -237,7 +237,7 @@ export default function ModelConfigPanel({ open, onClose, onSaved }: Props) {
           </p>
         </div>
 
-        <div className="sticky bottom-0 flex justify-end gap-2 px-5 py-4 border-t border-white/10 bg-[#13121F]">
+        <div className="sticky bottom-0 flex justify-end gap-2 px-5 py-4 border-t border-white/10 bg-black">
           <button
             type="button"
             onClick={onClose}

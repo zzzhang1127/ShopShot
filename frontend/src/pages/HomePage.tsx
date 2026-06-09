@@ -27,7 +27,6 @@ import {
 } from '../lib/modelConfigStore';
 import AppShell from '../components/AppShell';
 import CliprisePromptBar from '../components/CliprisePromptBar';
-import FeatureWorkbench, { type WorkbenchAction } from '../components/FeatureWorkbench';
 import ModelConfigPanel from '../components/ModelConfigPanel';
 import TemplatePreviewCard from '../components/TemplatePreviewCard';
 import CategoryVideoStrip from '../components/CategoryVideoStrip';
@@ -72,7 +71,6 @@ export default function HomePage() {
   const [catalogOffline, setCatalogOffline] = useState(false);
   const CATALOG_PAGE = 56;
   const [configOpen, setConfigOpen] = useState(false);
-  const [workbenchPanel, setWorkbenchPanel] = useState<WorkbenchAction | null>(null);
   const [templatePreview, setTemplatePreview] = useState<PreviewMedia | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptBarRef = useRef<HTMLDivElement>(null);
@@ -189,39 +187,6 @@ export default function HomePage() {
     return catalogTemplates;
   }, [templateTab, customTemplates, catalogTemplates, categoryFilter, catalogOffline]);
 
-  const handleWorkbenchAction = (action: WorkbenchAction) => {
-    setWorkbenchPanel(action);
-    switch (action) {
-      case 'video':
-        setMediaTab('video');
-        promptBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        break;
-      case 'image-animate':
-        setMediaTab('image');
-        fileInputRef.current?.click();
-        break;
-      case 'ai-art':
-      case 'edit-asset':
-        navigate('/library');
-        break;
-      case 'upscale':
-        navigate('/projects');
-        break;
-      case 'compare-models':
-        navigate('/library');
-        break;
-      case 'learn':
-        templatesRef.current?.scrollIntoView({ behavior: 'smooth' });
-        break;
-      case 'pricing':
-      case 'api-config':
-        setConfigOpen(true);
-        break;
-      default:
-        break;
-    }
-  };
-
   const handleGenerate = async () => {
     if (mediaTab === 'templates') {
       navigate('/templates');
@@ -335,7 +300,7 @@ export default function HomePage() {
 
       <main className="flex-1 relative flex flex-col overflow-y-auto">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#09090b] via-[#09090b] to-[#09090b]" />
+          <div className="absolute inset-0 bg-black" />
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[120px]" />
           <div className="absolute top-20 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px]" />
         </div>

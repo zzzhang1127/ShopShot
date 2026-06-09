@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, FileText, Music } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { FileText, Music } from 'lucide-react';
 import {
   createProject,
   formatApiError,
@@ -33,7 +33,6 @@ function assetUrl(relative: string) {
 
 export default function LibrariesPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const tab: LibTab = useMemo(() => {
@@ -149,7 +148,7 @@ export default function LibrariesPage() {
 
   return (
     <AppShell title={t('libraryHubTitle')}>
-      <div className="flex-1 overflow-y-auto bg-[#09090b] text-gray-300">
+      <div className="flex-1 overflow-y-auto bg-black text-gray-300">
         <MediaLightbox media={preview} onClose={() => setPreview(null)} />
 
         <div className="flex gap-2 px-6 py-4 border-b border-white/5 overflow-x-auto">

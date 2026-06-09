@@ -81,7 +81,7 @@ export default function GenerationProgress({
           : t('generating');
 
   return (
-    <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-[#13121F] border border-blue-500/30 shadow-lg shadow-blue-500/10">
+    <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-black/80 border border-blue-500/30 shadow-lg shadow-blue-500/10">
       <div className="flex items-center justify-between mb-3 gap-2">
         <span className="text-sm font-semibold text-white">{title}</span>
         <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export default function GenerationProgress({
           <span className="text-sm font-bold text-blue-400">{pct}%</span>
         </div>
       </div>
-      <div className="h-2.5 w-full rounded-full bg-[#1C1B2B] overflow-hidden mb-3">
+      <div className="h-2.5 w-full rounded-full bg-white/10 overflow-hidden mb-3">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             status === 'failed'
@@ -112,7 +112,7 @@ export default function GenerationProgress({
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
         <span>
-          {t('task')}: <span className="text-gray-200">{t(`task_${task.type.toLowerCase()}`)}</span>
+          {t('task')}: <span className="text-gray-200">{t(`task_${(task.type || 'unknown').toLowerCase()}`)}</span>
         </span>
         <span>
           {t('status')}:{' '}

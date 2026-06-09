@@ -35,7 +35,7 @@ export default function AppShell({
   };
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-white overflow-hidden font-sans">
+    <div className="flex h-screen bg-black text-white overflow-hidden font-sans">
       <aside className="w-20 flex-shrink-0 flex flex-col items-center py-6 bg-black border-r border-white/10 z-20">
         <button
           type="button"
@@ -47,11 +47,6 @@ export default function AppShell({
         <nav className="flex flex-col gap-2 flex-1 w-full items-center">
           {navItems.map((item) => (
             <div key={item.path} className="relative w-full flex justify-center">
-              {item.badge && (
-                <span className="absolute -top-1 right-1 bg-blue-600 text-[9px] px-1 rounded-full font-bold z-10">
-                  {t(item.badge)}
-                </span>
-              )}
               <button
                 type="button"
                 onClick={() => navigate(item.path)}
@@ -76,7 +71,7 @@ export default function AppShell({
       </aside>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {title && (
-          <header className="h-14 flex items-center px-6 bg-[#13121F]/90 border-b border-white/5 shrink-0">
+          <header className="h-14 flex items-center px-6 bg-black/90 border-b border-white/5 shrink-0">
             <h1 className="text-base font-bold">{title}</h1>
           </header>
         )}

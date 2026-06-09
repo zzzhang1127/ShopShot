@@ -27,7 +27,7 @@ export default function ProjectCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white p-6">
+    <div className="min-h-screen bg-black text-white p-6">
       <div className="max-w-xl mx-auto">
         <div className="mb-6">
           <Link to="/projects" className="text-blue-400 hover:text-blue-300 transition-colors">
