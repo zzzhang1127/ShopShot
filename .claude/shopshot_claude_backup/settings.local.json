@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone *)",
+      "Bash(pip --version)",
+      "Bash(pip install *)",
+      "Bash(ffmpeg -version)",
+      "Bash(npm list *)",
+      "Bash(python -c \"from app.config import get_settings; s=get_settings\\(\\); print\\('API_KEY配置:', bool\\(s.volc_api_key\\)\\); print\\('SEED_EP配置:', bool\\(s.doubao_seed_ep\\)\\); print\\('SEEDANCE_EP配置:', bool\\(s.doubao_seedance_ep\\)\\); print\\('MOCK_MODE:', s.mock_mode\\)\")",
+      "Bash(npm install *)",
+      "Bash(python -c \"from app.core.database import init_db; init_db\\(\\); print\\('数据库初始化成功'\\)\")",
+      "Bash(winget install *)",
+      "Bash(scoop --version)",
+      "Bash(choco --version)",
+      "Bash(python scripts/install_ffmpeg.py)",
+      "Bash(python *)"
+    ]
+  }
+}

@@ -4,6 +4,11 @@ from datetime import datetime
 from app.models import AssetType
 
 
+class DownloadUrlRequest(BaseModel):
+    project_id: int
+    url: str
+
+
 class AssetCreate(BaseModel):
     name: str
     type: AssetType

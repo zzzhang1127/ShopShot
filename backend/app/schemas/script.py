@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -38,3 +38,10 @@ class ScriptGenerateRequest(BaseModel):
     project_id: int
     mode: str = "auto"  # template / viral / auto
     product_info: Optional[str] = None
+
+
+class ScriptFromImagesRequest(BaseModel):
+    project_id: int
+    product_name: str = ""
+    product_description: str = ""
+    image_asset_ids: List[int] = []

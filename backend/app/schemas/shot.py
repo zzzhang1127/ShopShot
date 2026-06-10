@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from app.models import ShotType, ShotStatus
 
 
@@ -57,3 +57,10 @@ class ShotGenerateRequest(BaseModel):
 class VariantSelectRequest(BaseModel):
     generated_video_asset_id: int
     variant_index: int
+
+
+class ShotPromptsRequest(BaseModel):
+    script_text: str
+    camera_styles: List[str] = []
+    shot_count: int = 4
+    product_info: str = ""

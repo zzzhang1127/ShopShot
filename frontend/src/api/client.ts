@@ -398,3 +398,64 @@ export async function listTemplateCatalog(opts?: {
     };
   };
 }
+
+// ── Studio APIs ──────────────────────────────────────────────────────────────
+
+export async function downloadImageUrl(projectId: number, url: string) {
+  const res = await client.post('/assets/download-url', { project_id: projectId, url });
+  return res.data.data as import('../types').Asset;
+}
+
+export async function extractCameraStyle(projectId: number, file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await client.post(
+    `/assets/extract-camera-style?project_id=${projectId}`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return res.data.data as { asset_id: number; asset_url: string; camera_style: string; filename: string };
+}
+
+export async function generateScriptFromImages(
+  projectId: number,
+  imageAssetIds: number[],
+  productName: string,
+  productDescription: string
+) {
+  const res = await client.post('/scripts/generate-from-images', {
+    project_id: projectId,
+    image_asset_ids: imageAssetIds,
+    product_name: productName,
+    product_description: productDescription,
+  });
+  return res.data.data as { script_text: string };
+}
+
+export async function generateShotPrompts(payload: {
+  script_text: string;
+  camera_styles: string[];
+  shot_count: number;
+  product_info: string;
+}) {
+  const res = await client.post('/shots/generate-prompts', payload);
+  return res.data.data as {
+    shots: Array<{ shot_id: string; image_prompt: string; action_prompt: string; words: string }>;
+  };
+}
+
+export async function generateVideoFromShots(payload: {
+  project_id: number;
+  shots: Array<{ shot_id: string; image_prompt: string; action_prompt: string; words: string }>;
+  product_asset_ids: number[];
+  duration: number;
+  aspect_ratio: string;
+}) {
+  const res = await client.post('/agents/generate-video-from-shots', payload);
+  return res.data.data as import('../types').GenerationTask;
+}
+
+export async function deleteAsset(assetId: number) {
+  const res = await client.delete(`/assets/${assetId}`);
+  return res.data.data;
+}

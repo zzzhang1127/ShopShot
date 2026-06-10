@@ -111,3 +111,18 @@ class VideoGenerateRequest(BaseModel):
     target_ratio: Optional[str] = None
     target_resolution: Optional[str] = None
     duration: Optional[int] = 20
+
+
+class ShotDataItem(BaseModel):
+    shot_id: str
+    image_prompt: str = ""
+    action_prompt: str = ""
+    words: str = ""
+
+
+class VideoFromShotsRequest(BaseModel):
+    project_id: int
+    shots: list[ShotDataItem]
+    product_asset_ids: list[int] = []
+    duration: int = 20
+    aspect_ratio: str = "9:16"

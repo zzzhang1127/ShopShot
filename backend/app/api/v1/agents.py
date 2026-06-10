@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.schemas.common import ApiResponse
+from app.core.exceptions import ShopShotException
 from app.schemas.generation import (
     AgentRunRequest,
     AgentCapabilitiesRead,
@@ -12,6 +13,7 @@ from app.schemas.generation import (
     GenerationTaskRead,
     PromptEnhanceRequest,
     PromptEnhanceRead,
+    VideoFromShotsRequest,
 )
 from app.config import get_settings
 from app.agents.director import DirectorAgent
@@ -234,4 +236,67 @@ def run_quick_agent(
         extra["target_ratio"] = body.target_ratio
     task_id = agent.start_full(project_id, extra=extra)
     background_tasks.add_task(job_execute_full, task_id, project_id, duration)
+    return _task_response(db, task_id)
+
+
+@router.post("/agents/generate-video-from-shots", response_model=ApiResponse[GenerationTaskRead])
+def generate_video_from_shots(
+    body: VideoFromShotsRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Create Script + Shots in DB from user-provided prompt data,
+    then start background video generation.
+    """
+    from app.models import Script, Shot, ShotStatus, Project, ProjectStatus
+    from app.services.script_service import ScriptService
+
+    if not body.shots:
+        raise ShopShotException(400, "shots 不能为空")
+
+    svc = ScriptService(db)
+    script = svc.create(project_id=body.project_id, video_type="product_show")
+    svc.update(script.id, title="自定义分镜脚本", status="confirmed")
+
+    shot_count = len(body.shots)
+    per_duration = body.duration // shot_count if shot_count > 0 else body.duration
+
+    for idx, shot_data in enumerate(body.shots):
+        ref_id = (
+            body.product_asset_ids[idx % len(body.product_asset_ids)]
+            if body.product_asset_ids
+            else None
+        )
+        shot = Shot(
+            script_id=script.id,
+            project_id=body.project_id,
+            shot_id=shot_data.shot_id,
+            image_prompt=shot_data.image_prompt,
+            action_prompt=shot_data.action_prompt,
+            words=shot_data.words,
+            duration=per_duration,
+            sequence=idx,
+            status=ShotStatus.PENDING,
+            reference_asset_id=ref_id,
+        )
+        db.add(shot)
+    db.commit()
+
+    project = db.get(Project, body.project_id)
+    if project:
+        project.target_ratio = body.aspect_ratio
+        project.status = ProjectStatus.GENERATING
+        db.commit()
+
+    agent = DirectorAgent(db)
+    task_id = agent.start_video_only(
+        body.project_id,
+        script.id,
+        body.duration,
+        extra={"pipeline_preset": "asset_based", "target_ratio": body.aspect_ratio},
+    )
+    background_tasks.add_task(
+        job_execute_video, task_id, body.project_id, script.id, body.duration
+    )
     return _task_response(db, task_id)
