@@ -67,7 +67,10 @@ export default function Block4VideoResult({
     const a = document.createElement('a');
     a.href = assetUrl(url);
     a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   const stepLabels: Record<string, string> = {
@@ -93,22 +96,14 @@ export default function Block4VideoResult({
       </div>
 
       <div className="p-5 flex flex-col gap-4">
-        {/* 生成进度 */}
-        {isGenerating && (
-          <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <Loader2 size={16} className="text-green-400 animate-spin" />
-              <span className="text-sm text-green-300 font-medium">
-                {stepLabels[taskStep ?? ''] || `${taskStep ?? '生成中'}…`}
-              </span>
-              <span className="ml-auto text-sm font-bold text-green-400">{taskProgress}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-500"
-                style={{ width: `${taskProgress ?? 0}%` }}
-              />
-            </div>
+        {/* 生成中占位提示（详细进度在顶部置顶进度条） */}
+        {isGenerating && !latestVideo && (
+          <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 flex items-center gap-3">
+            <Loader2 size={15} className="text-green-400 animate-spin shrink-0" />
+            <span className="text-sm text-green-300">
+              {stepLabels[taskStep ?? ''] || '视频生成中，请稍候…'}
+              <span className="text-xs text-gray-500 ml-2">（进度详情见顶部）</span>
+            </span>
           </div>
         )}
 

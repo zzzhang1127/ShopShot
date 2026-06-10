@@ -13,6 +13,7 @@ import {
   downloadImageUrl,
   extractCameraStyle,
   generateScriptFromImages,
+  generateScriptFromImagesStream,
   generateShotPrompts,
   generateVideoFromShots,
   deleteAsset,
@@ -89,7 +90,10 @@ export default function ProjectDetail() {
   const generatedVideoAssets = allAssets.filter((a) => a.type === 'video' && a.source === 'generated');
 
   const busy =
-    task != null && task.status !== 'succeeded' && task.status !== 'failed';
+    task != null &&
+    task.status !== 'succeeded' &&
+    task.status !== 'failed' &&
+    task.status !== 'cancelled';
   const isGeneratingVideo = busy;
 
   // Build shotVideos: pair generated shot videos with their shot IDs
@@ -206,7 +210,7 @@ export default function ProjectDetail() {
   // Poll task
   useEffect(() => {
     if (!task?.id) return;
-    if (task.status === 'succeeded' || task.status === 'failed') {
+    if (task.status === 'succeeded' || task.status === 'failed' || task.status === 'cancelled') {
       load().finally(() => {});
       return;
     }
@@ -283,18 +287,21 @@ export default function ProjectDetail() {
       return;
     }
     setGeneratingScript(true);
+    setScriptText('');       // clear before streaming
+    setActiveBlock(2);       // switch to Block2 so user sees text appearing
     try {
       await updateProject(projectId, {
         product_info: productDescription || productName,
       });
-      const { script_text } = await generateScriptFromImages(
-        projectId,
-        productImages.map((a) => a.id),
-        productName,
-        productDescription
+      await generateScriptFromImagesStream(
+        {
+          project_id: projectId,
+          product_name: productName,
+          product_description: productDescription,
+          image_asset_ids: productImages.map((a) => a.id),
+        },
+        (chunk) => setScriptText((prev) => prev + chunk)
       );
-      setScriptText(script_text);
-      setActiveBlock(2);
     } catch (err) {
       alert(`剧本生成失败\n\n${formatApiError(err)}`);
     } finally {
@@ -405,7 +412,12 @@ export default function ProjectDetail() {
 
   const handleSelectBgmPreset = (id: string | null) => {
     setSelectedBgmPresetId(id);
-    if (id) setUploadedBgmName(null);
+    if (id) {
+      setUploadedBgmName(null);
+    } else {
+      // 取消选择时同步清空已上传 BGM 名称
+      setUploadedBgmName(null);
+    }
   };
 
   const handleGenerateVideo = async () => {
@@ -507,6 +519,19 @@ export default function ProjectDetail() {
 
       <MediaLightbox media={preview} onClose={() => setPreview(null)} />
 
+      {/* 任务进度条：sticky 置顶，始终可见 */}
+      {task && (
+        <div className="absolute top-0 left-0 right-0 z-50 transition-all duration-300">
+          {(busy || task.status === 'succeeded' || task.status === 'failed') && (
+            <GenerationProgress
+              task={task}
+              onCancel={undefined}
+              cancelling={false}
+            />
+          )}
+        </div>
+      )}
+
       {/* 左侧文件管理器 */}
       <div className="relative z-10">
         <LeftFileManager
@@ -522,16 +547,8 @@ export default function ProjectDetail() {
       </div>
 
       {/* 中央工作区 */}
-      <main className="relative z-10 flex-1 overflow-y-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto" style={{ paddingTop: task && (busy || task.status === 'succeeded' || task.status === 'failed') ? '52px' : undefined }}>
         <div className="max-w-3xl mx-auto px-5 py-5 space-y-4">
-          {/* 任务进度条（浮在顶部） */}
-          {task && busy && (
-            <GenerationProgress
-              task={task}
-              onCancel={undefined}
-              cancelling={false}
-            />
-          )}
 
           <Block1ProductInput
             productImages={productImages}

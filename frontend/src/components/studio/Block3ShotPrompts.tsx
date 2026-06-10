@@ -196,7 +196,10 @@ export default function Block3ShotPrompts({
             </div>
 
             {/* 音频设置折叠面板 */}
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+            <div
+              className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={() => setShowAudio((v) => !v)}

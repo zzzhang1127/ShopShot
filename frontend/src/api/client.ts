@@ -492,3 +492,52 @@ export async function deleteAsset(assetId: number) {
   const res = await client.delete(`/assets/${assetId}`);
   return res.data.data;
 }
+
+/** Stream script generation via SSE.
+ * Calls onChunk for each text chunk received. Returns full text when done.
+ */
+export async function generateScriptFromImagesStream(
+  payload: {
+    project_id: number;
+    product_name: string;
+    product_description: string;
+    image_asset_ids: number[];
+  },
+  onChunk: (text: string) => void
+): Promise<string> {
+  const resp = await fetch(`${API_BASE}/scripts/generate-from-images/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+  const reader = resp.body!.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') return fullText;
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.error) throw new Error(parsed.error);
+        if (parsed.text) {
+          fullText += parsed.text;
+          onChunk(parsed.text);
+        }
+      } catch {
+        // ignore malformed chunks
+      }
+    }
+  }
+  return fullText;
+}

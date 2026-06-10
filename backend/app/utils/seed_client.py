@@ -1,4 +1,5 @@
 import json
+from typing import Iterator
 from openai import OpenAI
 from app.config import get_settings
 
@@ -28,6 +29,24 @@ class SeedClient:
             kwargs["response_format"] = response_format
         resp = self.client.chat.completions.create(**kwargs)
         return resp.choices[0].message.content
+
+    def stream_chat(self, messages, temperature=0.7, max_tokens=4096) -> Iterator[str]:
+        """Yield text chunks from a streaming LLM call."""
+        if settings.mock_mode:
+            raise RuntimeError(
+                "MOCK_MODE 已关闭：请在项目根目录 .env 设置 MOCK_MODE=false 并使用真实 Seed API"
+            )
+        stream = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                yield delta.content
 
     def generate_json(self, system_prompt: str, user_prompt: str, temperature=0.7):
         messages = [

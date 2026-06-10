@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { t } from '../lib/i18n';
 import type { GenerationTask } from '../types';
 
@@ -68,9 +69,38 @@ export default function GenerationProgress({
   onCancel?: () => void;
   cancelling?: boolean;
 }) {
-  const pct = Math.min(100, Math.max(0, task.progress ?? 0));
+  const realPct = Math.min(100, Math.max(0, task.progress ?? 0));
   const status = task.status.toLowerCase();
   const running = status === 'running' || status === 'queued';
+
+  // Smooth display progress: interpolates up toward realPct, adds a small
+  // auto-increment so the bar always looks alive during long polling gaps.
+  const [displayPct, setDisplayPct] = useState(realPct);
+
+  useEffect(() => {
+    setDisplayPct((prev) => {
+      // Jump up if real value is ahead
+      if (realPct > prev) return realPct;
+      return prev;
+    });
+  }, [realPct]);
+
+  useEffect(() => {
+    if (!running) return;
+    const iv = setInterval(() => {
+      setDisplayPct((prev) => {
+        const target = realPct;
+        // Slowly creep toward target + a small cushion to keep it alive
+        const cushion = Math.min(target + 3, 99);
+        if (prev >= cushion) return prev;
+        return prev + 0.4;
+      });
+    }, 500);
+    return () => clearInterval(iv);
+  }, [running, realPct]);
+
+  const pct = Math.round(displayPct);
+
   const title =
     status === 'succeeded'
       ? t('generateSuccess')
@@ -81,63 +111,65 @@ export default function GenerationProgress({
           : t('generating');
 
   return (
-    <div className="w-full max-w-4xl mt-5 p-5 rounded-2xl bg-black/80 border border-blue-500/30 shadow-lg shadow-blue-500/10">
-      <div className="flex items-center justify-between mb-3 gap-2">
-        <span className="text-sm font-semibold text-white">{title}</span>
-        <div className="flex items-center gap-2">
+    <div className="w-full px-4 py-2.5 bg-gray-950/95 border-b border-blue-500/20 backdrop-blur-sm">
+      <div className="max-w-3xl mx-auto">
+        {/* top row */}
+        <div className="flex items-center gap-3 mb-1.5">
+          <span className="text-xs font-semibold text-white shrink-0">{title}</span>
+          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ease-out ${
+                status === 'failed'
+                  ? 'bg-red-500'
+                  : status === 'succeeded'
+                    ? 'bg-green-500'
+                    : 'bg-gradient-to-r from-blue-500 to-cyan-400'
+              }`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-xs font-bold text-blue-400 shrink-0 tabular-nums">{pct}%</span>
           {running && onCancel && (
             <button
               type="button"
               onClick={onCancel}
               disabled={cancelling}
-              className="text-xs px-2.5 py-1 rounded-lg border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-40"
+              className="text-[10px] px-2 py-0.5 rounded border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-40 shrink-0"
             >
               {cancelling ? t('running') : t('cancelTask')}
             </button>
           )}
-          <span className="text-sm font-bold text-blue-400">{pct}%</span>
         </div>
-      </div>
-      <div className="h-2.5 w-full rounded-full bg-white/10 overflow-hidden mb-3">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            status === 'failed'
-              ? 'bg-red-500'
-              : status === 'succeeded'
-                ? 'bg-green-500'
-                : 'bg-gradient-to-r from-blue-500 to-cyan-500'
-          } ${running ? 'animate-pulse' : ''}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-        <span>
-          {t('task')}: <span className="text-gray-200">{t(`task_${(task.type || 'unknown').toLowerCase()}`)}</span>
-        </span>
-        <span>
-          {t('status')}:{' '}
-          <span
-            className={
-              status === 'failed'
-                ? 'text-red-400'
-                : status === 'succeeded'
-                  ? 'text-green-400'
-                  : 'text-yellow-400'
-            }
-          >
-            {statusLabel(task.status)}
+        {/* detail row */}
+        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[10px] text-gray-500">
+          <span>
+            {t('task')}: <span className="text-gray-300">{t(`task_${(task.type || 'unknown').toLowerCase()}`)}</span>
           </span>
-        </span>
-        <span>
-          {t('step')}: <span className="text-gray-200">{stepLabel(task.step)}</span>
-        </span>
+          <span>
+            {t('status')}:{' '}
+            <span
+              className={
+                status === 'failed'
+                  ? 'text-red-400'
+                  : status === 'succeeded'
+                    ? 'text-green-400'
+                    : 'text-yellow-400'
+              }
+            >
+              {statusLabel(task.status)}
+            </span>
+          </span>
+          <span>
+            {t('step')}: <span className="text-gray-300">{stepLabel(task.step)}</span>
+          </span>
+          <span className="text-gray-600">{helperText(task)}</span>
+        </div>
+        {task.error && (
+          <p className="text-red-400 text-xs mt-1 truncate">
+            {t('error')}: {formatTaskError(task.error)}
+          </p>
+        )}
       </div>
-      <p className="text-xs text-gray-500 mt-3">{helperText(task)}</p>
-      {task.error && (
-        <p className="text-red-400 text-sm mt-3 whitespace-pre-wrap">
-          {t('error')}: {formatTaskError(task.error)}
-        </p>
-      )}
     </div>
   );
 }

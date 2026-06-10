@@ -88,6 +88,77 @@ def generate_script_from_images(
     return ApiResponse(data={"script_text": script_text.strip()})
 
 
+@router.post("/scripts/generate-from-images/stream")
+def generate_script_from_images_stream(
+    body: ScriptFromImagesRequest,
+    db: Session = Depends(get_db),
+):
+    """Server-Sent Events streaming version of generate-from-images.
+
+    Each SSE event is ``data: {"text": "<chunk>"}\n\n``.
+    Terminates with ``data: [DONE]\n\n``.
+    """
+    import json as _json
+    from fastapi.responses import StreamingResponse
+    from app.utils.seed_client import get_seed_client
+    from app.utils.media_url import local_asset_to_image_url
+    from app.models import Asset
+
+    seed = get_seed_client()
+
+    system_prompt = (
+        "你是一名专业电商短视频编导。根据商品图片和商品信息，生成一段适合带货短视频的整体脚本文案。\n\n"
+        "要求：\n"
+        "1. 脚本用中文，300-500字\n"
+        "2. 结构：开场钩子（吸引注意）→ 商品痛点/需求 → 核心卖点展示 → 情感共鸣 → 行动引导\n"
+        "3. 语气亲切自然，适合抖音/TikTok带货风格\n"
+        "4. 必须紧扣用户提供的商品信息，不编造不相关内容\n"
+        "5. 直接输出脚本文本，不加标题或分段标注"
+    )
+
+    user_text = f"商品名称：{body.product_name}\n商品描述：{body.product_description}\n\n请生成带货视频脚本。"
+
+    image_parts = []
+    for asset_id in body.image_asset_ids[:4]:
+        asset = db.get(Asset, asset_id)
+        if asset and asset.type == "image":
+            data_uri = local_asset_to_image_url(asset.url)
+            if data_uri:
+                image_parts.append({"type": "image_url", "image_url": {"url": data_uri}})
+
+    if image_parts:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": user_text}, *image_parts],
+            },
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_text},
+        ]
+
+    def event_stream():
+        try:
+            for chunk in seed.stream_chat(messages, temperature=0.8, max_tokens=1200):
+                payload = _json.dumps({"text": chunk}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+        except Exception as exc:
+            yield f"data: {_json.dumps({'error': str(exc)})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.get("/scripts", response_model=ApiResponse[list[ScriptRead]])
 def list_scripts(
     project_id: int,

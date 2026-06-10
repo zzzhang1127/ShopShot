@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.models import Shot, Asset, AssetType, Video, VideoStatus, VideoRatio, VideoResolution, TaskStatus
 from app.services.generation_service import GenerationService
 from app.services.video_service import VideoService
-from app.utils.ffmpeg_utils import concat_videos, fit_video_duration, add_bgm, add_tts_to_video
+from app.utils.ffmpeg_utils import concat_videos, fit_video_duration, add_bgm, add_tts_to_video, ensure_audio_track
 from app.core.storage import STORAGE_ROOT
 
 logger = logging.getLogger(__name__)
@@ -66,8 +66,15 @@ class PostProcessAgent:
                             continue
                         words = (shot.words or "").strip()
                         if not words:
-                            # No narration text – keep video as-is
-                            tts_video_paths.append(asset.url)
+                            # No narration text – add silent audio so all
+                            # segments have consistent stream layout for concat
+                            silent_name = f"shot_{shot.id}_silent_{uuid.uuid4().hex[:6]}.mp4"
+                            silent_path = str(STORAGE_ROOT / "videos" / silent_name)
+                            try:
+                                ensure_audio_track(asset.url, silent_path)
+                                tts_video_paths.append(f"videos/{silent_name}")
+                            except Exception:
+                                tts_video_paths.append(asset.url)
                             continue
                         # Generate TTS audio
                         tts_name = f"tts_{shot.id}_{uuid.uuid4().hex[:6]}.mp3"
@@ -102,7 +109,7 @@ class PostProcessAgent:
 
         output_name = f"final_{project_id}_{uuid.uuid4().hex[:8]}.mp4"
         output_path = str(STORAGE_ROOT / "videos" / output_name)
-        concat_videos(video_paths, output_path)
+        concat_videos(video_paths, output_path, encode_audio=enable_tts)
 
         if target_duration:
             fitted_name = f"final_{project_id}_{uuid.uuid4().hex[:8]}_{target_duration}s.mp4"
