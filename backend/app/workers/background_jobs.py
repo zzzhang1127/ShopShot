@@ -21,8 +21,20 @@ def job_execute_script(task_id: str, project_id: int):
     _with_agent(lambda a: a.execute_script_only(task_id, project_id))
 
 
-def job_execute_video(task_id: str, project_id: int, script_id: int, duration: int | None = None):
-    _with_agent(lambda a: a.execute_video_only(task_id, project_id, script_id, duration))
+def job_execute_video(
+    task_id: str,
+    project_id: int,
+    script_id: int,
+    duration: int | None = None,
+    enable_tts: bool = False,
+    tts_voice: str = "zh-CN-XiaoxiaoNeural",
+):
+    _with_agent(
+        lambda a: a.execute_video_only(
+            task_id, project_id, script_id, duration,
+            enable_tts=enable_tts, tts_voice=tts_voice,
+        )
+    )
 
 
 def job_execute_quick(

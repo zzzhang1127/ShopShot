@@ -176,6 +176,66 @@ def add_bgm(input_video_path: str, bgm_path: str, output_path: str, bgm_volume: 
     return output_path
 
 
+def add_tts_to_video(video_path: str, tts_path: str, output_path: str) -> str:
+    """Mix TTS narration audio onto a (silent) video segment.
+
+    The TTS audio will be truncated or padded with silence to match the
+    video duration.  The original video stream is copied without re-encoding.
+    """
+    vp = Path(video_path)
+    if not vp.is_absolute():
+        vp = STORAGE_ROOT / video_path
+    tp = Path(tts_path)
+    if not tp.is_absolute():
+        tp = STORAGE_ROOT / tts_path
+
+    # Try mixing – if the video already has an audio track we replace it;
+    # if it's silent we just add the TTS track.
+    try:
+        subprocess.run(
+            [
+                "ffmpeg", "-y",
+                "-i", str(vp),
+                "-i", str(tp),
+                "-filter_complex",
+                (
+                    "[1:a]apad=whole_dur=999[tts];"
+                    "[tts]atrim=end_pts=DURATION[tts_trim]"
+                ),
+                "-map", "0:v:0",
+                "-map", "[tts_trim]",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-shortest",
+                output_path,
+            ],
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError:
+        # Simpler fallback: just mux video + TTS, rely on -shortest
+        try:
+            subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-i", str(vp),
+                    "-i", str(tp),
+                    "-map", "0:v:0",
+                    "-map", "1:a:0",
+                    "-c:v", "copy",
+                    "-c:a", "aac",
+                    "-shortest",
+                    output_path,
+                ],
+                check=True,
+                capture_output=True,
+            )
+        except subprocess.CalledProcessError:
+            # If all else fails, return original video without TTS
+            shutil.copy2(str(vp), output_path)
+    return output_path
+
+
 def scale_video(input_path: str, output_path: str, width: int, height: int):
     subprocess.run(
         [

@@ -450,9 +450,42 @@ export async function generateVideoFromShots(payload: {
   product_asset_ids: number[];
   duration: number;
   aspect_ratio: string;
+  enable_tts?: boolean;
+  tts_voice?: string;
 }) {
   const res = await client.post('/agents/generate-video-from-shots', payload);
   return res.data.data as import('../types').GenerationTask;
+}
+
+export async function listBgmPresets(): Promise<BgmPreset[]> {
+  const res = await client.get('/assets/bgm-presets');
+  return res.data.data;
+}
+
+export async function uploadBgm(projectId: number, file: File) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('project_id', String(projectId));
+  const res = await client.post('/assets/bgm-upload', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data.data;
+}
+
+export async function applyBgmPreset(projectId: number, presetId: string) {
+  const res = await client.post(`/assets/bgm-from-preset?preset_id=${presetId}&project_id=${projectId}`);
+  return res.data.data;
+}
+
+export interface BgmPreset {
+  id: string;
+  label: string;
+  mood: string;
+  description: string;
+  filename: string;
+  duration: number;
+  available: boolean;
+  url: string | null;
 }
 
 export async function deleteAsset(assetId: number) {

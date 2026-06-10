@@ -1,5 +1,6 @@
-import { Film, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { Film, Loader2, ChevronDown, ChevronUp, Music, Mic, Upload, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import type { BgmPreset } from '../../api/client';
 
 export interface ShotPromptItem {
   shotId: string;
@@ -16,6 +17,15 @@ interface Block3Props {
   disabled: boolean;
   aspectRatio: string;
   onAspectRatioChange: (r: string) => void;
+  enableTts: boolean;
+  onEnableTtsChange: (v: boolean) => void;
+  ttsVoice: string;
+  onTtsVoiceChange: (v: string) => void;
+  bgmPresets: BgmPreset[];
+  selectedBgmPresetId: string | null;
+  onSelectBgmPreset: (id: string | null) => void;
+  onUploadBgm: (file: File) => void;
+  uploadedBgmName: string | null;
   onFocus: () => void;
 }
 
@@ -26,6 +36,13 @@ const SHOT_LABELS: Record<string, string> = {
   P4: '行动（Action）',
 };
 
+const TTS_VOICES = [
+  { value: 'zh-CN-XiaoxiaoNeural', label: '小晓（暖心女声）' },
+  { value: 'zh-CN-YunxiNeural', label: '云希（阳光男声）' },
+  { value: 'zh-CN-XiaoyiNeural', label: '晓伊（活泼女声）' },
+  { value: 'zh-CN-YunjianNeural', label: '云健（磁性男声）' },
+];
+
 export default function Block3ShotPrompts({
   shotPrompts,
   onShotPromptChange,
@@ -34,14 +51,26 @@ export default function Block3ShotPrompts({
   disabled,
   aspectRatio,
   onAspectRatioChange,
+  enableTts,
+  onEnableTtsChange,
+  ttsVoice,
+  onTtsVoiceChange,
+  bgmPresets,
+  selectedBgmPresetId,
+  onSelectBgmPreset,
+  onUploadBgm,
+  uploadedBgmName,
   onFocus,
 }: Block3Props) {
   const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({ 0: true });
+  const [showAudio, setShowAudio] = useState(false);
+  const bgmInputRef = useRef<HTMLInputElement>(null);
 
   const toggleCard = (idx: number) =>
     setExpandedCards((prev) => ({ ...prev, [idx]: !prev[idx] }));
 
   const canGenerate = shotPrompts.length > 0;
+  const hasWords = shotPrompts.some((s) => s.words.trim().length > 0);
 
   return (
     <div
@@ -166,6 +195,182 @@ export default function Block3ShotPrompts({
               </div>
             </div>
 
+            {/* 音频设置折叠面板 */}
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowAudio((v) => !v)}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-white/[0.03] transition-colors"
+              >
+                <Music size={13} className="text-purple-400 shrink-0" />
+                <span className="text-xs font-medium text-gray-300">音频设置</span>
+                <div className="ml-auto flex items-center gap-2">
+                  {(enableTts || selectedBgmPresetId || uploadedBgmName) && (
+                    <span className="text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">
+                      {[enableTts && '人声', (selectedBgmPresetId || uploadedBgmName) && 'BGM']
+                        .filter(Boolean)
+                        .join(' + ')}
+                    </span>
+                  )}
+                  {showAudio ? (
+                    <ChevronUp size={13} className="text-gray-500" />
+                  ) : (
+                    <ChevronDown size={13} className="text-gray-500" />
+                  )}
+                </div>
+              </button>
+
+              {showAudio && (
+                <div className="px-4 pb-4 space-y-4 border-t border-white/5 pt-3">
+
+                  {/* TTS 人声 */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Mic size={11} className="text-blue-400" />
+                        <span className="text-xs text-gray-300 font-medium">AI 人声旁白</span>
+                        {!hasWords && (
+                          <span className="text-[10px] text-yellow-500/70 ml-1">（需填写口播文案）</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onEnableTtsChange(!enableTts)}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${
+                          enableTts ? 'bg-blue-600' : 'bg-white/15'
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            enableTts ? 'translate-x-[18px]' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {enableTts && (
+                      <div className="ml-4">
+                        <label className="block text-[10px] text-gray-500 mb-1.5">选择声线</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {TTS_VOICES.map((v) => (
+                            <button
+                              key={v.value}
+                              type="button"
+                              onClick={() => onTtsVoiceChange(v.value)}
+                              className={`px-2.5 py-2 rounded-lg border text-[11px] text-left transition-all ${
+                                ttsVoice === v.value
+                                  ? 'border-blue-500/50 bg-blue-500/10 text-blue-300'
+                                  : 'border-white/10 text-gray-400 hover:border-white/20'
+                              }`}
+                            >
+                              {v.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-gray-600 mt-1.5">
+                          TTS 将根据每个分镜的「口播文案」自动合成旁白并混入对应分镜视频
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BGM */}
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Music size={11} className="text-purple-400" />
+                      <span className="text-xs text-gray-300 font-medium">背景音乐（BGM）</span>
+                    </div>
+
+                    {/* 预置 BGM */}
+                    {bgmPresets.length > 0 && (
+                      <div className="grid grid-cols-2 gap-1.5 mb-2">
+                        {bgmPresets.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            disabled={!preset.available}
+                            onClick={() =>
+                              onSelectBgmPreset(
+                                selectedBgmPresetId === preset.id ? null : preset.id
+                              )
+                            }
+                            className={`relative flex flex-col px-3 py-2.5 rounded-lg border text-left transition-all ${
+                              !preset.available
+                                ? 'border-white/5 bg-white/[0.01] opacity-40 cursor-not-allowed'
+                                : selectedBgmPresetId === preset.id
+                                ? 'border-purple-500/50 bg-purple-500/10'
+                                : 'border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            <span className="text-[11px] font-medium text-gray-200">
+                              {preset.label}
+                            </span>
+                            <span className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                              {preset.description}
+                            </span>
+                            {!preset.available && (
+                              <span className="absolute top-1.5 right-1.5 text-[9px] text-gray-600 bg-white/5 px-1 rounded">
+                                未配置
+                              </span>
+                            )}
+                            {selectedBgmPresetId === preset.id && (
+                              <span className="absolute top-1.5 right-1.5 text-[10px] text-purple-400">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 自定义上传 BGM */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => bgmInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-white/10 transition-colors"
+                      >
+                        <Upload size={11} /> 上传自定义 BGM
+                      </button>
+                      {uploadedBgmName && (
+                        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                          <Music size={10} className="text-purple-400 shrink-0" />
+                          <span className="text-[10px] text-purple-300 max-w-[120px] truncate">
+                            {uploadedBgmName}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onSelectBgmPreset(null)}
+                            className="text-gray-500 hover:text-red-400 transition-colors"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={bgmInputRef}
+                      type="file"
+                      accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg,audio/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) onUploadBgm(f);
+                        e.target.value = '';
+                      }}
+                    />
+
+                    {(selectedBgmPresetId || uploadedBgmName) && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectBgmPreset(null)}
+                        className="mt-1.5 text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+                      >
+                        ✕ 不使用 BGM
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* 生成视频按钮 */}
             <button
               type="button"
@@ -180,6 +385,11 @@ export default function Block3ShotPrompts({
               ) : (
                 <>
                   <Film size={15} /> 生成视频
+                  {(enableTts || selectedBgmPresetId || uploadedBgmName) && (
+                    <span className="text-xs opacity-70 font-normal">
+                      · {[enableTts && '含人声', (selectedBgmPresetId || uploadedBgmName) && '含BGM'].filter(Boolean).join('+')}
+                    </span>
+                  )}
                 </>
               )}
             </button>

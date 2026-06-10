@@ -18,6 +18,9 @@ import {
   deleteAsset,
   listLibraryVideos,
   updateProject,
+  listBgmPresets,
+  uploadBgm,
+  applyBgmPreset,
 } from '../api/client';
 import { listCustomTemplates } from '../lib/templateStore';
 import type { Asset, Project, Video as VideoType, GenerationTask, Shot, Script } from '../types';
@@ -63,6 +66,13 @@ export default function ProjectDetail() {
   const [shotTemplates, setShotTemplates] = useState<ShotTemplateItem[]>([]);
   const [shotPrompts, setShotPrompts] = useState<ShotPromptItem[]>([]);
   const [activeBlock, setActiveBlock] = useState<1 | 2 | 3 | 4>(1);
+
+  // audio settings
+  const [enableTts, setEnableTts] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState('zh-CN-XiaoxiaoNeural');
+  const [bgmPresets, setBgmPresets] = useState<import('../api/client').BgmPreset[]>([]);
+  const [selectedBgmPresetId, setSelectedBgmPresetId] = useState<string | null>(null);
+  const [uploadedBgmName, setUploadedBgmName] = useState<string | null>(null);
 
   // loading states
   const [generatingScript, setGeneratingScript] = useState(false);
@@ -145,6 +155,8 @@ export default function ProjectDetail() {
         /* ignore */
       }
     });
+    // Load BGM presets
+    listBgmPresets().then(setBgmPresets).catch(() => setBgmPresets([]));
   }, [load, projectId]);
 
   useEffect(() => {
@@ -381,6 +393,21 @@ export default function ProjectDetail() {
     );
   };
 
+  const handleBgmUpload = async (file: File) => {
+    try {
+      await uploadBgm(projectId, file);
+      setUploadedBgmName(file.name);
+      setSelectedBgmPresetId(null);
+    } catch (err) {
+      alert(`BGM 上传失败\n\n${formatApiError(err)}`);
+    }
+  };
+
+  const handleSelectBgmPreset = (id: string | null) => {
+    setSelectedBgmPresetId(id);
+    if (id) setUploadedBgmName(null);
+  };
+
   const handleGenerateVideo = async () => {
     if (shotPrompts.length === 0) {
       alert('请先生成分镜提示词');
@@ -393,6 +420,14 @@ export default function ProjectDetail() {
     setTask(null);
     setActiveBlock(4);
     try {
+      // If a BGM preset is selected, apply it to the project first
+      if (selectedBgmPresetId) {
+        try {
+          await applyBgmPreset(projectId, selectedBgmPresetId);
+        } catch {
+          // non-fatal: continue without BGM
+        }
+      }
       const newTask = await generateVideoFromShots({
         project_id: projectId,
         shots: shotPrompts.map((s) => ({
@@ -404,6 +439,8 @@ export default function ProjectDetail() {
         product_asset_ids: productImages.map((a) => a.id),
         duration,
         aspect_ratio: aspectRatio,
+        enable_tts: enableTts,
+        tts_voice: ttsVoice,
       });
       setTask(newTask);
     } catch (err) {
@@ -537,6 +574,15 @@ export default function ProjectDetail() {
             disabled={isGeneratingVideo}
             aspectRatio={aspectRatio}
             onAspectRatioChange={setAspectRatio}
+            enableTts={enableTts}
+            onEnableTtsChange={setEnableTts}
+            ttsVoice={ttsVoice}
+            onTtsVoiceChange={setTtsVoice}
+            bgmPresets={bgmPresets}
+            selectedBgmPresetId={selectedBgmPresetId}
+            onSelectBgmPreset={handleSelectBgmPreset}
+            onUploadBgm={handleBgmUpload}
+            uploadedBgmName={uploadedBgmName}
             onFocus={() => setActiveBlock(3)}
           />
 

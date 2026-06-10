@@ -294,9 +294,15 @@ def generate_video_from_shots(
         body.project_id,
         script.id,
         body.duration,
-        extra={"pipeline_preset": "asset_based", "target_ratio": body.aspect_ratio},
+        extra={
+            "pipeline_preset": "asset_based",
+            "target_ratio": body.aspect_ratio,
+            "enable_tts": body.enable_tts,
+            "tts_voice": body.tts_voice,
+        },
     )
     background_tasks.add_task(
-        job_execute_video, task_id, body.project_id, script.id, body.duration
+        job_execute_video, task_id, body.project_id, script.id, body.duration,
+        enable_tts=body.enable_tts, tts_voice=body.tts_voice,
     )
     return _task_response(db, task_id)

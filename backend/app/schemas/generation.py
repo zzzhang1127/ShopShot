@@ -126,3 +126,5 @@ class VideoFromShotsRequest(BaseModel):
     product_asset_ids: list[int] = []
     duration: int = 20
     aspect_ratio: str = "9:16"
+    enable_tts: bool = False
+    tts_voice: str = "zh-CN-XiaoxiaoNeural"

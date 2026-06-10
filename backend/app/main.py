@@ -132,6 +132,10 @@ def api_health():
 
 app.mount("/files", StaticFiles(directory=str(STORAGE_ROOT)), name="files")
 
+_STATIC_BGM_DIR = Path(__file__).resolve().parent.parent / "static" / "bgm"
+_STATIC_BGM_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static/bgm", StaticFiles(directory=str(_STATIC_BGM_DIR)), name="static_bgm")
+
 if TEMPLATES_PUBLIC.exists():
     app.mount("/templates", StaticFiles(directory=str(TEMPLATES_PUBLIC)), name="templates")
 

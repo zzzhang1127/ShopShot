@@ -1,13 +1,17 @@
 import os
 import uuid
+import logging
+import tempfile
 from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from app.models import Shot, Asset, AssetType, Video, VideoStatus, VideoRatio, VideoResolution, TaskStatus
 from app.services.generation_service import GenerationService
 from app.services.video_service import VideoService
-from app.utils.ffmpeg_utils import concat_videos, fit_video_duration, add_bgm
+from app.utils.ffmpeg_utils import concat_videos, fit_video_duration, add_bgm, add_tts_to_video
 from app.core.storage import STORAGE_ROOT
+
+logger = logging.getLogger(__name__)
 
 
 class PostProcessAgent:
@@ -22,6 +26,8 @@ class PostProcessAgent:
         script_id: int,
         task_id: str = None,
         target_duration: int | None = None,
+        enable_tts: bool = False,
+        tts_voice: str = "zh-CN-XiaoxiaoNeural",
     ) -> Video:
         from app.models import Project
         project = self.db.get(Project, project_id)
@@ -43,6 +49,53 @@ class PostProcessAgent:
 
         if not video_paths:
             raise RuntimeError("No video segments available for concatenation")
+
+        # ── TTS per-shot narration ───────────────────────────────────────────
+        if enable_tts:
+            try:
+                from app.utils.tts_client import generate_tts, is_available
+                if is_available():
+                    tts_video_paths = []
+                    tts_dir = STORAGE_ROOT / "audio" / "tts"
+                    tts_dir.mkdir(parents=True, exist_ok=True)
+                    for idx, shot in enumerate(shots):
+                        if not shot.generated_video_asset_id:
+                            continue
+                        asset = self.db.get(Asset, shot.generated_video_asset_id)
+                        if not asset:
+                            continue
+                        words = (shot.words or "").strip()
+                        if not words:
+                            # No narration text – keep video as-is
+                            tts_video_paths.append(asset.url)
+                            continue
+                        # Generate TTS audio
+                        tts_name = f"tts_{shot.id}_{uuid.uuid4().hex[:6]}.mp3"
+                        tts_path = str(tts_dir / tts_name)
+                        generate_tts(words, tts_path, voice=tts_voice)
+                        # Mix TTS onto shot video
+                        mixed_name = f"shot_{shot.id}_tts_{uuid.uuid4().hex[:6]}.mp4"
+                        mixed_path = str(STORAGE_ROOT / "videos" / mixed_name)
+                        add_tts_to_video(asset.url, tts_path, mixed_path)
+                        # Store TTS audio as asset and record on shot
+                        tts_asset = Asset(
+                            project_id=project_id,
+                            name=tts_name,
+                            type=AssetType.AUDIO,
+                            url=f"audio/tts/{tts_name}",
+                            source="tts",
+                        )
+                        self.db.add(tts_asset)
+                        self.db.flush()
+                        shot.tts_audio_asset_id = tts_asset.id
+                        self.db.flush()
+                        tts_video_paths.append(f"videos/{mixed_name}")
+                    if tts_video_paths:
+                        video_paths = tts_video_paths
+                else:
+                    logger.warning("TTS requested but edge-tts is not installed; skipping TTS.")
+            except Exception as exc:
+                logger.warning("TTS generation failed (non-fatal): %s", exc)
 
         if task_id:
             self.gen_service.update_status(task_id, TaskStatus.RUNNING, step="postprocess", progress=90)

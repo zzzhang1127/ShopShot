@@ -106,7 +106,8 @@ class DirectorAgent:
         return task.id
 
     def execute_video_only(
-        self, task_id: str, project_id: int, script_id: int, duration: int | None = None
+        self, task_id: str, project_id: int, script_id: int, duration: int | None = None,
+        enable_tts: bool = False, tts_voice: str = "zh-CN-XiaoxiaoNeural",
     ) -> None:
         try:
             duration = duration or 20
@@ -135,6 +136,8 @@ class DirectorAgent:
                 script_id=script_id,
                 task_id=task_id,
                 target_duration=duration,
+                enable_tts=enable_tts,
+                tts_voice=tts_voice,
             )
             self.gen_service.update_status(
                 task_id,

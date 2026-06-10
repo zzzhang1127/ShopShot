@@ -222,3 +222,127 @@ def delete_asset(
     svc = AssetService(db)
     svc.delete(asset_id)
     return ApiResponse(data={"deleted": True, "asset_id": asset_id})
+
+
+# ── BGM endpoints ──────────────────────────────────────────────────────────────
+
+# Static preset BGM tracks (place matching .mp3 files in backend/static/bgm/)
+_BGM_PRESETS = [
+    {
+        "id": "bgm_energetic",
+        "label": "活力节拍",
+        "mood": "energetic",
+        "description": "快节奏电商展示，适合运动/时尚品类",
+        "filename": "bgm_energetic.mp3",
+        "duration": 30,
+    },
+    {
+        "id": "bgm_calm",
+        "label": "轻柔简约",
+        "mood": "calm",
+        "description": "温柔舒缓，适合家居/美妆/食品品类",
+        "filename": "bgm_calm.mp3",
+        "duration": 30,
+    },
+    {
+        "id": "bgm_corporate",
+        "label": "商务大气",
+        "mood": "corporate",
+        "description": "沉稳专业，适合数码/奢侈品品类",
+        "filename": "bgm_corporate.mp3",
+        "duration": 30,
+    },
+    {
+        "id": "bgm_trendy",
+        "label": "潮流时尚",
+        "mood": "trendy",
+        "description": "流行节拍，适合服装/潮玩/美妆品类",
+        "filename": "bgm_trendy.mp3",
+        "duration": 30,
+    },
+]
+
+_STATIC_BGM_DIR = Path(__file__).resolve().parents[3] / "static" / "bgm"
+
+
+@router.get("/assets/bgm-presets", response_model=ApiResponse[list])
+def list_bgm_presets():
+    """Return available preset BGM tracks.
+
+    Tracks are available if the corresponding .mp3 file exists under
+    backend/static/bgm/.  The ``available`` flag lets the frontend grey out
+    missing tracks while still showing the full catalogue.
+    """
+    result = []
+    for preset in _BGM_PRESETS:
+        file_path = _STATIC_BGM_DIR / preset["filename"]
+        result.append(
+            {
+                **preset,
+                "available": file_path.is_file(),
+                "url": f"/static/bgm/{preset['filename']}" if file_path.is_file() else None,
+            }
+        )
+    return ApiResponse(data=result)
+
+
+@router.post("/assets/bgm-upload", response_model=ApiResponse[AssetRead])
+def upload_bgm(
+    file: UploadFile = File(...),
+    project_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Upload a custom BGM audio file for a project.
+
+    The uploaded file is stored as an Asset with ``source='bgm'``.
+    PostProcessAgent automatically picks the latest BGM asset and mixes it
+    into the final video.
+    """
+    ct = (file.content_type or "").lower()
+    if not ct.startswith("audio"):
+        raise ShopShotException(400, "只支持音频文件（mp3、wav、aac 等）")
+
+    file_bytes = file.file.read()
+    svc = AssetService(db)
+    asset = svc.create(
+        project_id=project_id,
+        name=file.filename or "bgm.mp3",
+        type=AssetType.AUDIO,
+        file_bytes=file_bytes,
+        filename=file.filename or "bgm.mp3",
+        source="bgm",
+    )
+    return ApiResponse(data=AssetRead.model_validate(asset))
+
+
+@router.post("/assets/bgm-from-preset", response_model=ApiResponse[AssetRead])
+def apply_bgm_preset(
+    preset_id: str,
+    project_id: int,
+    db: Session = Depends(get_db),
+):
+    """Copy a preset BGM into the project as an asset so PostProcessAgent can use it."""
+    preset = next((p for p in _BGM_PRESETS if p["id"] == preset_id), None)
+    if not preset:
+        raise ShopShotException(404, f"Preset '{preset_id}' not found")
+
+    file_path = _STATIC_BGM_DIR / preset["filename"]
+    if not file_path.is_file():
+        raise ShopShotException(
+            404,
+            f"BGM file '{preset['filename']}' not found on server. "
+            "Please place the file in backend/static/bgm/ and restart.",
+        )
+
+    data = file_path.read_bytes()
+    svc = AssetService(db)
+    asset = svc.create(
+        project_id=project_id,
+        name=preset["filename"],
+        type=AssetType.AUDIO,
+        file_bytes=data,
+        filename=preset["filename"],
+        source="bgm",
+    )
+    return ApiResponse(data=AssetRead.model_validate(asset))
+
