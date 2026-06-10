@@ -255,21 +255,28 @@ def get_stats() -> dict:
     with _lock:
         templates = _load_raw().get("templates", [])
     cat_counts: dict[str, int] = {}
+    # Pick the first actually-generated video for each category
+    cat_first_video: dict[str, str] = {}
     for t in templates:
         c = t.get("category", "other")
         cat_counts[c] = cat_counts.get(c, 0) + 1
+        pv = t.get("preview_video", "")
+        if c not in cat_first_video and pv.startswith("/templates/generated/"):
+            cat_first_video[c] = pv
     categories = []
     for cid, (key, label) in CATEGORY_DEFS.items():
         count = cat_counts.get(cid, 0)
         if count <= 0:
             continue
-        preview, cover = _media_urls(key)
+        _, cover = _media_urls(key)
+        # Use the real generated video as preview; empty string when none generated yet
+        actual_preview = cat_first_video.get(cid, "")
         categories.append(
             {
                 "id": cid,
                 "label": label,
                 "count": count,
-                "preview_video": preview,
+                "preview_video": actual_preview,
                 "cover_image": cover,
             }
         )

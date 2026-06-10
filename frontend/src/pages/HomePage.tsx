@@ -69,6 +69,8 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogOffline, setCatalogOffline] = useState(false);
+  // category id -> first generated preview video URL (for category chips)
+  const [chipVideoMap, setChipVideoMap] = useState<Record<string, string>>({});
   const CATALOG_PAGE = 56;
   const [configOpen, setConfigOpen] = useState(false);
   const [templatePreview, setTemplatePreview] = useState<PreviewMedia | null>(null);
@@ -87,6 +89,29 @@ export default function HomePage() {
     setCustomTemplates(listCustomTemplates());
     // Auto-connect ComfyUI
     getComfyHealth().catch(() => {});
+  }, []);
+
+  // One-time: load 1 template per primary category to populate chip preview videos
+  useEffect(() => {
+    const PRIMARY_CATS = ['fashion', 'beauty', '3c', 'food', 'home', 'sports', 'jewelry'];
+    Promise.all(
+      PRIMARY_CATS.map((cat) =>
+        listTemplateCatalog({ limit: 5, offset: 0, category: cat }).catch(() => null)
+      )
+    ).then((pages) => {
+      const map: Record<string, string> = {};
+      pages.forEach((page, i) => {
+        if (!page) return;
+        const found = page.items.find((item) => {
+          const pv = String(item.preview_video || item.previewVideo || '');
+          return pv.startsWith('/templates/generated/');
+        });
+        if (found) {
+          map[PRIMARY_CATS[i]] = String(found.preview_video || found.previewVideo);
+        }
+      });
+      setChipVideoMap(map);
+    });
   }, []);
 
   useEffect(() => {
@@ -489,7 +514,12 @@ export default function HomePage() {
                 categories={(() => {
                   const primaryIds = new Set(primaryCategoryShowcase().map((c) => c.id));
                   const fromApi = catalogCategories.filter((c) => primaryIds.has(c.id));
-                  return fromApi.length >= 7 ? fromApi : categoriesFromShowcase(true);
+                  const chips = fromApi.length >= 7 ? fromApi : categoriesFromShowcase(true);
+                  // Enrich each chip: use chipVideoMap as fallback when stats doesn't have a video
+                  return chips.map((chip) => ({
+                    ...chip,
+                    previewVideo: chip.previewVideo || chipVideoMap[chip.id] || '',
+                  }));
                 })()}
                 selectedId={categoryFilter}
                 onSelect={setCategoryFilter}

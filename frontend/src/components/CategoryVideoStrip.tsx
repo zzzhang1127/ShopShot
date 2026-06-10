@@ -47,23 +47,18 @@ function CategoryVideoTile({
         selected ? 'border-cyan-500 ring-2 ring-cyan-500/40' : 'border-white/10 hover:border-white/30'
       }`}
     >
-      <div className="aspect-[9/16] bg-black relative">
-        <img
-          src={cat.coverImage}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-        />
-        <video
-          ref={videoRef}
-          src={cat.previewVideo}
-          poster={cat.coverImage}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+      <div className="aspect-[9/16] bg-gradient-to-br from-gray-800 to-gray-900 relative">
+        {cat.previewVideo && (
+          <video
+            ref={videoRef}
+            src={cat.previewVideo}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 p-1.5 text-left pointer-events-none">
           <span className="text-[10px] font-medium text-white line-clamp-1">{cat.label}</span>

@@ -79,23 +79,24 @@ export function categoriesFromShowcase(primaryOnly = false): CategoryChip[] {
     id: c.id,
     label: c.label,
     count: 0,
-    previewVideo: c.previewVideo,
-    coverImage: c.coverImage,
+    // Static placeholder files don't exist; use empty so the video element falls back to gradient bg
+    previewVideo: '',
+    coverImage: '',
   }));
 }
 
 export function mergeCategoryMedia(
   apiCats: Array<{ id: string; label: string; count: number; preview_video?: string; cover_image?: string }>
 ): CategoryChip[] {
-  const media = new Map(CATEGORY_SHOWCASE.map((c) => [c.id, c]));
   return apiCats.map((c) => {
-    const fb = media.get(c.id);
+    // Only use preview_video if it points to a real generated file (not broken static placeholders)
+    const previewVideo = c.preview_video?.startsWith('/templates/generated/') ? c.preview_video : '';
     return {
       id: c.id,
       label: c.label,
       count: c.count,
-      previewVideo: c.preview_video || fb?.previewVideo || '/templates/clothes.mp4',
-      coverImage: c.cover_image || fb?.coverImage || '/templates/clothes.jpg',
+      previewVideo,
+      coverImage: '',
     };
   });
 }
