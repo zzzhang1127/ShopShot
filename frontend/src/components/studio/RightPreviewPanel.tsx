@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { X, GripVertical, ZoomIn } from 'lucide-react';
 import type { Asset } from '../../types';
 
@@ -33,19 +34,19 @@ export default function RightPreviewPanel({
   onTemplateCameraStyleChange,
   onPreview,
 }: RightPreviewPanelProps) {
-  const dragging = { current: -1 };
+  const draggingIdx = useRef(-1);
 
   const handleDragStart = (idx: number) => {
-    dragging.current = idx;
+    draggingIdx.current = idx;
   };
   const handleDrop = (
     idx: number,
     reorder: (from: number, to: number) => void
   ) => {
-    if (dragging.current >= 0 && dragging.current !== idx) {
-      reorder(dragging.current, idx);
+    if (draggingIdx.current >= 0 && draggingIdx.current !== idx) {
+      reorder(draggingIdx.current, idx);
     }
-    dragging.current = -1;
+    draggingIdx.current = -1;
   };
 
   const showImages = activeBlock === 1 || activeBlock === 3 || activeBlock === 4;

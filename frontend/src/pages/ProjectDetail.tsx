@@ -5,6 +5,8 @@ import {
   listAssets,
   uploadAsset,
   listVideos,
+  listScripts,
+  listShots,
   getTaskStatus,
   getLatestTask,
   formatApiError,
@@ -18,7 +20,7 @@ import {
   updateProject,
 } from '../api/client';
 import { listCustomTemplates } from '../lib/templateStore';
-import type { Asset, Project, Video as VideoType, GenerationTask } from '../types';
+import type { Asset, Project, Video as VideoType, GenerationTask, Shot, Script } from '../types';
 import LeftFileManager from '../components/studio/LeftFileManager';
 import RightPreviewPanel from '../components/studio/RightPreviewPanel';
 import Block1ProductInput from '../components/studio/Block1ProductInput';
@@ -50,6 +52,7 @@ export default function ProjectDetail() {
   const [task, setTask] = useState<GenerationTask | null>(null);
   const [preview, setPreview] = useState<PreviewMedia | null>(null);
   const [libraryVideos, setLibraryVideos] = useState<LibraryTpl[]>([]);
+  const [dbShots, setDbShots] = useState<Shot[]>([]);
 
   // four-block state
   const [productName, setProductName] = useState('');
@@ -79,14 +82,25 @@ export default function ProjectDetail() {
     task != null && task.status !== 'succeeded' && task.status !== 'failed';
   const isGeneratingVideo = busy;
 
-  // shot videos: pair generated video assets with shot IDs from prompts
-  const shotVideos = generatedVideoAssets
-    .filter((a) => a.name.startsWith('shot_'))
-    .map((a, idx) => ({
+  // Build shotVideos: pair generated shot videos with their shot IDs
+  // Priority: match via DB shots → fallback to name-based → fallback to index
+  const shotVideos = (() => {
+    const shotAssets = generatedVideoAssets.filter((a) => /^shot_\d+_/.test(a.name));
+    if (dbShots.length > 0) {
+      return dbShots
+        .filter((s) => s.generated_video_asset_id)
+        .map((s) => {
+          const asset = allAssets.find((a) => a.id === s.generated_video_asset_id);
+          return asset ? { assetId: asset.id, url: asset.url, shotId: s.shot_id } : null;
+        })
+        .filter((x): x is { assetId: number; url: string; shotId: string } => x !== null);
+    }
+    return shotAssets.map((a, idx) => ({
       assetId: a.id,
       url: a.url,
       shotId: shotPrompts[idx]?.shotId ?? `P${idx + 1}`,
     }));
+  })();
 
   const load = useCallback(async () => {
     const p = await getProject(projectId);
@@ -96,6 +110,28 @@ export default function ProjectDetail() {
     const [a, v] = await Promise.all([listAssets(projectId), listVideos(projectId)]);
     setAllAssets(a);
     setVideos(v);
+
+    // Restore shot prompts from DB (latest script)
+    try {
+      const scripts: Script[] = await listScripts(projectId);
+      if (scripts.length > 0) {
+        const latestScript = scripts[0];
+        const shots: Shot[] = await listShots(latestScript.id);
+        setDbShots(shots);
+        // Only restore if user hasn't manually set shotPrompts yet
+        setShotPrompts((prev) => {
+          if (prev.length > 0) return prev;
+          return shots.map((s) => ({
+            shotId: s.shot_id,
+            imagePrompt: s.image_prompt || '',
+            actionPrompt: s.action_prompt || '',
+            words: s.words || '',
+          }));
+        });
+      }
+    } catch {
+      // ignore - shots not critical
+    }
   }, [projectId]);
 
   useEffect(() => {

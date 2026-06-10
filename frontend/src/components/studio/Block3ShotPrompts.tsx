@@ -36,7 +36,7 @@ export default function Block3ShotPrompts({
   onAspectRatioChange,
   onFocus,
 }: Block3Props) {
-  const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({});
+  const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({ 0: true });
 
   const toggleCard = (idx: number) =>
     setExpandedCards((prev) => ({ ...prev, [idx]: !prev[idx] }));
@@ -100,7 +100,7 @@ export default function Block3ShotPrompts({
                     )}
                   </button>
 
-                  {(expandedCards[idx] || shotPrompts.length === 1) && (
+                  {expandedCards[idx] === true && (
                     <div className="px-4 pb-4 space-y-2.5 border-t border-white/5 pt-3">
                       <div>
                         <label className="block text-[10px] text-gray-500 mb-1">

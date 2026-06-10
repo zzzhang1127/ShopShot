@@ -29,7 +29,7 @@ export default function Block4VideoResult({
 }: Block4Props) {
   const isGenerating =
     taskStatus === 'queued' || taskStatus === 'running';
-  const latestVideo = videos[videos.length - 1] ?? null;
+  const latestVideo = videos[0] ?? null;
 
   const handleSaveToLibrary = (v: VideoType) => {
     const id = `custom-${v.id}-${Date.now()}`;

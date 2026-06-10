@@ -137,24 +137,58 @@ export default function Block1ProductInput({
 
         {/* 右：上传区 */}
         <div className="w-44 flex flex-col gap-2">
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`flex-1 min-h-[120px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-              isDragOver
-                ? 'border-blue-500/60 bg-blue-500/5'
-                : 'border-white/15 hover:border-white/30 bg-white/[0.02]'
-            }`}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImagePlus size={20} className="text-gray-500" />
-            <div className="text-center">
-              <p className="text-xs text-gray-400">点击上传</p>
-              <p className="text-[10px] text-gray-600 mt-0.5">或拖拽图片到此</p>
-              <p className="text-[10px] text-gray-600">1-4 张</p>
+          {productImages.length === 0 ? (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex-1 min-h-[120px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+                isDragOver
+                  ? 'border-blue-500/60 bg-blue-500/5'
+                  : 'border-white/15 hover:border-white/30 bg-white/[0.02]'
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus size={20} className="text-gray-500" />
+              <div className="text-center">
+                <p className="text-xs text-gray-400">点击上传</p>
+                <p className="text-[10px] text-gray-600 mt-0.5">或拖拽图片到此</p>
+                <p className="text-[10px] text-gray-600">1-4 张</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex-1 rounded-xl border border-dashed transition-all p-1.5 ${
+                isDragOver ? 'border-blue-500/60 bg-blue-500/5' : 'border-white/10'
+              }`}
+            >
+              <div className="grid grid-cols-2 gap-1.5">
+                {productImages.map((img) => (
+                  <div key={img.id} className="aspect-square rounded-lg overflow-hidden bg-white/5 relative group">
+                    <img
+                      src={img.url.startsWith('http') ? img.url : `/files/${img.url}`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-[10px]">预览</span>
+                    </div>
+                  </div>
+                ))}
+                {productImages.length < 4 && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square rounded-lg border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-white/40 transition-colors"
+                  >
+                    <ImagePlus size={16} className="text-gray-600" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-1.5">
             <button
@@ -169,7 +203,7 @@ export default function Block1ProductInput({
 
           {productImages.length > 0 && (
             <p className="text-center text-[10px] text-gray-500">
-              已选 {productImages.length}/4 张
+              已选 {productImages.length}/4 张，右侧可预览/删除
             </p>
           )}
 
