@@ -1,248 +1,198 @@
 # ShopShot
 
-AI 驱动的电商带货视频一键生成平台。上传商品信息，AI 自动生成剧本、分镜与视频，让带货内容创作效率提升 10 倍。
+> AI 驱动的电商带货视频一键生成平台。上传商品图片 + 一句话描述，AI 自动完成剧本撰写、分镜规划、视频生成、人声配音、BGM 混音，数分钟内产出专业级带货短视频。
+
+---
 
 ## 功能特性
 
-- **快捷模式**：输入商品信息，AI 直接生成带货视频
-- **深度模式**：基于 AIDA 营销模型生成 4 镜分镜剧本，支持逐镜编辑后再生成视频
-- **素材管理**：支持上传图片/视频素材作为 AI 生成参考
-- **参数配置**：画面比例（9:16 / 16:9）、视频时长（**5 / 10 / 15 / 20 秒**，默认 20 秒）
-- **7 大模板**：潮流服饰、美妆护肤、数码 3C、美食零食、家居生活、运动户外、珠宝配饰
-- **多语言支持**：中文 / 英文一键切换
-- **暗黑主题**：专业级视频创作 Studio UI
-- **真实 API**：默认 `MOCK_MODE=false`，剧本走 Seed-2.0-pro，视频走 Seedance-1.5-pro
-- **工作台入口**：参考 Cliprise 的“需求→入口”路由，按任务快速进入文生视频/图生视频/模型对比/API 等能力
+| 功能 | 说明 |
+|------|------|
+| **多模态剧本生成** | 上传商品图片，Seed-2.0-pro 识别商品外观并流式输出带货文案（SSE 实时展示） |
+| **AIDA 分镜规划** | 基于营销模型自动生成 4 镜分镜方案（注意→兴趣→欲望→行动），支持逐镜手动编辑 |
+| **AI 视频生成** | 每个分镜独立调用 Seedance-1.5-pro 图生视频，支持 5 / 10 / 15 / 20 秒时长和 9:16 / 16:9 / 1:1 画幅 |
+| **TTS 人声配音** | 集成 Edge-TTS，支持 5 种中文神经网络音色，分镜有台词时自动合成人声 |
+| **BGM 智能匹配** | 内置 4 种风格曲库（活力/轻柔/商务/潮流），支持自定义上传；无配置时自动选取默认 BGM |
+| **全自动后处理** | FFmpeg 流水线完成拼接、音轨对齐、时长适配、BGM 混音，每个分镜和完整成片均含人声 + BGM |
+| **实时进度追踪** | 顶部置顶进度条，平滑动画 + 分步提示，支持取消任务 |
+| **素材库管理** | 商品图、参考视频、生成分镜统一管理，支持跨项目复用 |
+| **一键部署** | Docker 镜像打包前端 + 后端 + FFmpeg，`docker compose up` 即可运行 |
 
-## Cliprise 逻辑映射（需求 → ShopShot 入口）
-
-| Need | ShopShot 入口（当前实现） |
-|---|---|
-| Generate AI videos | 首页 `文生视频` + 开始生成 |
-| Create images first, then animate them | 首页 `图生视频`（上传图片后进入项目） |
-| Make AI art for video scenes | 项目页 `ComfyUI（可选）` 运行图像工作流 |
-| Edit or polish image assets | 项目页素材预览 + 分镜提示词编辑 |
-| Upscale final assets | 预留入口（当前通过后处理与导出链路） |
-| Compare available models | 资源中心 `/library` → **模型能力** 卡片（`GET /resources/models`） |
-| BGM / 曲库 | 项目页从内置曲库导入 BGM（`POST /import-bgm`） |
-| 取消长任务 | 项目页生成进度条 **取消任务**（`POST /generations/{id}/cancel`） |
-| 复用上次参数 | 项目历史区 **复用该次参数**（`GET /generations/{id}/payload`） |
-| Learn prompting and production workflows | 工作台 `Learn` 外链 |
-| Check pricing and credits | 工作台 `Pricing` 外链 |
-| Build with the API | 工作台 `Developers API` 打开 `/docs` |
-
-## Pixelle-Video 能力迁移（节选）
-
-| Pixelle 概念 | ShopShot |
-|---|---|
-| 资源工作流 / BGM | `GET /resources/workflows|bgm|models`，Comfy 预置 `GET /comfy/workflows/content` |
-| 跨项目素材库 | `GET /library/assets|scripts|videos` → 前端 `/library`、`/templates` |
-| 管线预设 | `pipeline_preset`（含 `asset_based` 服务端素材映射） |
-| 任务可取消 | `GenerationService.cancel_task` + 前端轮询状态 |
+---
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 后端 | FastAPI、Hypercorn、SQLModel、SQLite |
 | 前端 | React 19、TypeScript、Vite、Tailwind CSS v4 |
-| AI | 火山方舟 Seed-2.0-pro（剧本）、Seedance-1.5-pro（视频） |
-| 工具 | FFmpeg（拼接/裁切）、后台任务轮询 |
+| 后端 | FastAPI、Hypercorn、SQLModel、SQLite |
+| AI 剧本 | 火山方舟 Seed-2.0-pro（多模态 + 流式输出） |
+| AI 视频 | 火山方舟 Seedance-1.5-pro（图生视频） |
+| 语音合成 | Microsoft Edge-TTS |
+| 音视频处理 | FFmpeg |
+| 部署 | Docker + Docker Compose |
+
+---
 
 ## 项目结构
 
 ```
 ShopShot/
-├── backend/                 # FastAPI 后端
+├── backend/
 │   ├── app/
-│   │   ├── api/v1/          # REST API
-│   │   ├── agents/          # Director / Script / VideoGen / PostProcess
+│   │   ├── agents/          # Director / Script / VideoGen / PostProcess Agent
+│   │   ├── api/v1/          # REST API 路由
+│   │   ├── services/        # 业务逻辑层
+│   │   ├── utils/           # Seed、Seedance、FFmpeg、TTS、下载工具
 │   │   ├── workers/         # 后台异步任务
-│   │   └── utils/           # Seed、Seedance、FFmpeg、下载等
+│   │   └── prompts/         # AIDA 分镜提示词模板
+│   ├── static/bgm/          # 内置 BGM 曲库
 │   ├── requirements.txt
 │   └── run_server.py
 ├── frontend/
 │   ├── src/
-│   └── public/templates/    # 模板封面与示例
-├── outputs/                 # 生成视频/素材（不提交 Git）
-├── .env                     # 本地配置（根目录唯一，不提交 Git）
-├── .env.example             # 环境变量模板（可提交）
-├── Dockerfile               # 生产镜像（前端 + 后端 + FFmpeg）
-├── docker-compose.yml       # 一键部署
-├── docker-start.bat         # Windows Docker 快捷启动
-├── start.bat                # 本地开发：前后端分离启动
-└── scripts/                 # 冒烟 / E2E 测试脚本
+│   │   ├── components/studio/  # Block1~4 四个工作台板块
+│   │   ├── pages/              # 首页、项目列表、项目详情
+│   │   └── api/client.ts       # API 请求封装
+│   └── public/
+├── outputs/                 # 生成视频与上传素材（不提交 Git）
+├── .env                     # 本地环境变量（不提交 Git）
+├── .env.example             # 环境变量模板
+├── Dockerfile
+├── docker-compose.yml
+└── start.bat                # Windows 本地开发一键启动
 ```
 
 ---
 
-## Docker 一键部署（推荐给他人的方式）
+## 快速开始
 
-无需本机安装 Python / Node / FFmpeg，只要 **Docker Desktop**。
+### 方式一：Docker 一键部署（推荐）
 
-### 步骤
+无需本机安装 Python / Node.js / FFmpeg，只需 **Docker Desktop**。
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/zzzhang1127/ShopShot.git
 cd ShopShot
-copy .env.example .env          # Windows；Linux/macOS: cp .env.example .env
-# 编辑 .env，填入 VOLC_API_KEY、DOUBAO_SEED_EP、DOUBAO_SEEDANCE_EP
 
+# Windows
+copy .env.example .env
+# Linux / macOS
+cp .env.example .env
+```
+
+编辑 `.env`，填入火山方舟的 `VOLC_API_KEY`、`DOUBAO_SEED_EP`、`DOUBAO_SEEDANCE_EP`，然后：
+
+```bash
 docker compose up -d --build
 ```
 
-Windows 也可双击 **`docker-start.bat`**（会自动复制 `.env` 模板并提示编辑）。
+Windows 也可直接双击 **`docker-start.bat`**。
 
 | 地址 | 说明 |
 |------|------|
-| http://localhost:8000 | 前端 + API 同源 |
+| http://localhost:8000 | 前端页面 + API 同源 |
 | http://localhost:8000/health | 健康检查 |
+| http://localhost:8000/docs | Swagger API 文档 |
 | `docker compose logs -f shopshot` | 查看容器日志 |
-| `docker compose down` | 停止 |
+| `docker compose down` | 停止服务 |
 
-- 数据库与生成视频保存在 Docker 卷 **`shopshot-data`**（路径 `/data`），删容器不丢数据。
-- 修改端口：在 `.env` 设置 `SHOPSHOT_PORT=8080`（见 `docker-compose.yml`）。
-- 容器内已固定 `DATABASE_URL=sqlite:////data/shopshot.db`、`STORAGE_LOCAL_PATH=/data/outputs`，会覆盖 `.env` 里的本地相对路径。
+> 数据库和生成视频持久化在 Docker 卷 `shopshot-data`，删除容器不会丢失数据。
 
 ---
 
-## 本地开发部署
+### 方式二：本地开发
 
-### 1. 环境要求
+#### 环境要求
 
-| 依赖 | 版本建议 |
-|------|----------|
+| 依赖 | 版本 |
+|------|------|
 | Python | 3.10+ |
 | Node.js | 20+ |
 | FFmpeg | 已加入系统 `PATH` |
-| 火山方舟 | API Key + Seed / Seedance 端点 ID，账户有余额 |
+| 火山方舟账号 | 有余额，已创建 Seed / Seedance 推理接入点 |
 
-### 2. 克隆与忽略本地文件
+#### 步骤
+
+**1. 克隆并配置环境变量**
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/zzzhang1127/ShopShot.git
 cd ShopShot
+copy .env.example .env   # Windows；Linux/macOS 用 cp
 ```
 
-**不要提交、也不要从仓库拉取期望存在的文件：**
+编辑根目录 `.env`，填入真实的 API Key 和 Endpoint ID（见下方[环境变量说明](#环境变量说明)）。
 
-| 路径 | 说明 |
-|------|------|
-| `.env`（仅项目根目录） | API Key 与全部配置，仅本地 |
-| `backend/shopshot.db`、`*.db` | SQLite 数据库 |
-| `**/*.log`、`logs/`、`backend/e2e_server*.log` | 运行日志（**不必上传**） |
-| `*.concat_list.txt`、`test_list.txt` | FFmpeg 临时列表（**不必上传**） |
-| `outputs/` | 生成视频与上传素材 |
-| `frontend/node_modules/`、`frontend/dist/` | 依赖与构建产物 |
-| `*.mp4` / `*.jpg` 等 | 媒体二进制（**例外**：`datasets/eval/` 评测样例会提交） |
-| `auto_enter.py` | 个人自动化脚本 |
-| `backend/test_scripts*.json` | 本地测试 JSON |
-
-> `requirements.txt`、文档类 `.md` 等**需要提交**；`.gitignore` 只忽略日志、临时 txt、产物与密钥。
-
-若你维护仓库且历史上误提交了 `server.log` / `shopshot.db`，见下文 [Git 提交指南](#git-提交指南)。
-
-### 3. 环境变量（根目录唯一 `.env`）
-
-在**项目根目录**复制模板并编辑（不要在 `backend/` 或 `frontend/` 下再建 `.env`）：
+**2. 安装依赖**
 
 ```bash
-# 在 ShopShot 根目录执行
-copy .env.example .env        # Windows
-# cp .env.example .env        # Linux / macOS
-```
-
-将 `VOLC_API_KEY`、`DOUBAO_SEED_EP`、`DOUBAO_SEEDANCE_EP` 等改为真实值。完整字段见 [.env.example](.env.example)。
-
-> 若你之前用过 `backend/.env`：把其中变量合并进根目录 `.env` 后删除 `backend/.env`，避免混淆。
-
-在 [火山方舟控制台](https://console.volcengine.com/ark) 创建推理接入点，将 **Endpoint ID** 填入 `DOUBAO_SEED_EP` / `DOUBAO_SEEDANCE_EP`。
-
-### 4. 安装依赖
-
-```bash
+# 后端
 cd backend
 pip install -r requirements.txt
 
+# 前端
 cd ../frontend
 npm install
 ```
 
-前端开发默认通过 Vite 代理访问后端（`vite.config.ts` 的 `envDir` 指向根目录，与后端读同一份 `.env`）。仅 Docker 等场景需在根目录 `.env` 取消注释：
-
-```env
-VITE_API_BASE=http://127.0.0.1:8000/api/v1
-```
-
-### 5. 启动
-
-**Windows（需先把 `start_backend.bat` 里的 Python 路径改成你本机路径，或直接用命令行）：**
-
-```bat
-start.bat
-```
-
-**跨平台命令行：**
+**3. 启动服务**
 
 ```bash
-# 终端 1 - 后端 :8000
-cd backend
-python run_server.py
+# Windows 一键启动
+start.bat
 
-# 终端 2 - 前端 :5173
-cd frontend
-npm run dev
+# 或手动分开启动：
+# 终端 1 - 后端（端口 8000）
+cd backend && python run_server.py
+
+# 终端 2 - 前端（端口 5173）
+cd frontend && npm run dev
 ```
 
 | 地址 | 说明 |
 |------|------|
-| http://localhost:5173 | 前端 |
-| http://localhost:8000/api/v1/health | 健康检查（含 `mock_mode`） |
+| http://localhost:5173 | 前端页面 |
+| http://localhost:8000/api/v1/health | 后端健康检查 |
 | http://localhost:8000/docs | Swagger |
 
-### 6. 使用流程
+---
 
-1. 首页输入商品描述 → 创建项目  
-2. 项目页上传商品图（可选）  
-3. **深度模式**：生成剧本 → 编辑分镜 → 选择 **5/10/15 秒** → 生成视频  
-4. 页面进度条轮询任务；成片在「最近生成」与素材库  
+## 环境变量说明
 
-**快捷模式**：项目页切换快捷模式，一键走完整 Agent 流程。
+在[火山方舟控制台](https://console.volcengine.com/ark)创建 **Seed-2.0-pro** 和 **Seedance-1.5-pro** 的推理接入点，将 Endpoint ID 填入对应字段。
 
-### 7. 验证（可选）
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `VOLC_API_KEY` | ✅ | 火山方舟 API Key |
+| `DOUBAO_SEED_EP` | ✅ | Seed-2.0-pro 端点 ID（剧本生成） |
+| `DOUBAO_SEEDANCE_EP` | ✅ | Seedance-1.5-pro 端点 ID（视频生成） |
+| `MOCK_MODE` | — | `false` 使用真实 API，`true` 返回占位数据 |
+| `SEEDANCE_CONCURRENCY` | — | 并发视频生成数，建议 `1` 避免超 RPM |
+| `SEEDANCE_MIN_SUBMIT_INTERVAL` | — | 两次提交最小间隔（秒），默认 `15` |
+| `STORAGE_LOCAL_PATH` | — | 生成文件存储路径，默认 `../outputs` |
 
-```bash
-# 后端已启动后
-test_e2e.bat
-# 或
-python scripts/e2e_home_api_test.py
+---
+
+## 使用流程
+
 ```
+1. 首页输入商品名称 → 新建项目
 
----
+2. 板块 1：上传 1~4 张商品图片，填写商品描述
+   → 点击「生成剧本」，AI 实时流式输出带货文案
 
-## 常见问题
+3. 板块 2：确认/编辑剧本，设置视频时长和画面比例
+   → 点击「生成分镜提示词」，AI 输出 4 镜 AIDA 画面描述
 
-| 现象 | 处理 |
-|------|------|
-| 剧本 `Network Error` | 确认后端 8000 已启动；前端代理或 `VITE_API_BASE` 正确 |
-| 视频 429 / RPM 超限 | 等待 1–2 分钟；同时只跑一个生成任务；增大 `SEEDANCE_MIN_SUBMIT_INTERVAL` |
-| 红色占位小视频 | 旧 mock 产物；`MOCK_MODE=false` 后**重新生成**，勿用历史 `mock_*.mp4` |
-| FFmpeg 报错 | 安装 FFmpeg 并加入 `PATH` |
-| Windows 后端卡死 | 项目使用 Hypercorn，勿改用 uvicorn 多进程 |
+4. 板块 3：逐镜编辑提示词，配置 TTS 音色和 BGM（可选，不配置自动补充）
+   → 点击「生成视频」启动完整流水线
 
----
-
-## 配置说明
-
-| 环境变量 | 说明 |
-|---------|------|
-| `VOLC_API_KEY` | 火山方舟 API Key |
-| `DOUBAO_SEED_EP` | Seed-2.0-pro 端点 ID（剧本） |
-| `DOUBAO_SEEDANCE_EP` | Seedance-1.5-pro 端点 ID（视频） |
-| `MOCK_MODE` | 必须为 `false` 才走真实 API |
-| `SEEDANCE_CONCURRENCY` | 建议 `1`，避免 RPM |
-| `SEEDANCE_MIN_SUBMIT_INTERVAL` | 两次 submit 最小间隔（秒） |
-| `STORAGE_LOCAL_PATH` | 相对 `backend/` 的 outputs 目录 |
+5. 板块 4：顶部进度条实时追踪，约 3~5 分钟后：
+   - 最终成片（人声 + BGM）
+   - 4 个独立分镜视频（各含人声 + BGM）
+   → 一键下载或发布到模板库
+```
 
 ---
 
@@ -251,109 +201,32 @@ python scripts/e2e_home_api_test.py
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/api/v1/health` | GET | 健康检查 |
-| `/api/v1/projects` | GET/POST | 项目 |
-| `/api/v1/upload` | POST | 上传素材 |
-| `/api/v1/scripts/generate` | POST | 生成剧本 |
-| `/api/v1/agents/run` | POST | 启动完整工作流 |
-| `/api/v1/generations/{id}/status` | GET | 任务进度 |
+| `/api/v1/projects` | GET / POST | 项目列表与创建 |
+| `/api/v1/upload` | POST | 上传素材（图片/视频） |
+| `/api/v1/scripts/generate` | POST | 生成剧本（同步） |
+| `/api/v1/scripts/generate-from-images/stream` | POST | 多模态剧本生成（SSE 流式） |
+| `/api/v1/shots` | GET / PUT | 分镜列表与编辑 |
+| `/api/v1/agents/run` | POST | 启动完整视频生成流水线 |
+| `/api/v1/generations/{id}/status` | GET | 任务进度查询 |
+| `/api/v1/generations/{id}/cancel` | POST | 取消任务 |
+
+完整接口文档见 http://localhost:8000/docs
 
 ---
 
-## Git 提交指南
+## 常见问题
 
-### 建议提交（源码与模板）
-
-```
-.gitignore
-.env.example
-README.md
-backend/app/
-backend/requirements.txt
-backend/run_server.py
-frontend/src/
-frontend/package.json
-frontend/vite.config.ts
-frontend/public/
-start.bat
-start_backend.bat
-start_frontend.bat
-run_e2e_test.bat
-test_e2e.bat
-scripts/
-```
-
-### 切勿提交
-
-- 密钥：根目录 `.env`
-- 数据库：`backend/shopshot.db`
-- 日志与临时文本：`*.log`、`*.concat_list.txt`、`test_list.txt`
-- 产物：`outputs/`、`frontend/dist/`、`frontend/node_modules/`
-- 旧环境文件：`backend/.env`、`frontend/.env*`（应删除，仅用根目录 `.env`）
-- 个人脚本：`auto_enter.py`
-- 大体积测试 JSON：`backend/test_scripts*.json`
-
-### 推荐 Git 命令（在本机执行）
-
-**第一步：从 Git 索引移除误跟踪文件（不删除磁盘文件）**
-
-```powershell
-cd D:\FILE\ShopShot
-
-git rm --cached auto_enter.py
-git rm --cached backend/server.log
-git rm --cached backend/shopshot.db
-```
-
-**第二步：确认 `.gitignore` 已更新后，只添加应提交的变更**
-
-```powershell
-git add .gitignore .env.example README.md
-git add backend/app/ backend/requirements.txt backend/run_server.py
-git add frontend/src/ frontend/package.json frontend/vite.config.ts
-git add frontend/package-lock.json
-git add frontend/public/
-git add datasets/eval/
-git add Dockerfile docker-compose.yml docker-start.bat .dockerignore
-git add start.bat start_backend.bat start_frontend.bat
-git add run_e2e_test.bat test_e2e.bat scripts/
-```
-
-> 若 `package-lock.json` 不存在，去掉对应一行即可。`git add frontend/` 会遵守 `frontend/.gitignore`，不会带上 `node_modules` / `dist`。
-
-**第三步：检查暂存区（确认没有 .env、db、log、outputs）**
-
-```powershell
-git status
-git diff --cached --name-only
-```
-
-**第四步：提交**
-
-```powershell
-git commit -m "feat: real API workflow, rate limiting, and deployment docs
-
-- Async jobs, Seedance RPM backoff, and frontend progress UI
-- Tighten .gitignore; stop tracking db, logs, and outputs
-- README: setup guide and Git commit instructions"
-```
-
-**第五步：推送（需要时）**
-
-```powershell
-git push origin HEAD
-```
-
-### 查看某文件是否被忽略
-
-```powershell
-git check-ignore -v .env outputs/videos/foo.mp4
-```
+| 现象 | 解决方法 |
+|------|---------|
+| 剧本生成报 `Network Error` | 确认后端 8000 端口已启动；检查 `VITE_API_BASE` 配置 |
+| 视频生成报 `429` | Seedance RPM 超限，等待 1~2 分钟；建议保持 `SEEDANCE_CONCURRENCY=1` |
+| 生成视频无声音 | 确认 `MOCK_MODE=false`；重新生成（旧 mock 视频无音轨） |
+| FFmpeg 命令报错 | 安装 FFmpeg 并加入系统 `PATH` |
+| Windows 后端启动卡死 | 项目使用 Hypercorn 异步服务器，不要改用 uvicorn 多进程模式 |
+| 422 参数错误 | 检查请求体是否包含所有必填字段，详见 `/docs` |
 
 ---
 
-## 注意事项
+## License
 
-1. **Windows**：`start_backend.bat` 内 Python 路径需按本机修改，或直接用 `python run_server.py`。
-2. **Seed-2.0-pro** 用于文本剧本，非生图；生图需另配 Seedream。
-3. **账户余额**：Seedance 按量计费，深度模式一次会连续提交多个分镜任务。
-4. **历史红屏视频**：仓库 `.gitignore` 已忽略 `*.mp4`，旧 mock 文件仅留在本机 `outputs/`，重新生成即可。
+MIT
