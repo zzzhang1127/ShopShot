@@ -27,11 +27,13 @@ RUN mkdir -p /data/outputs
 ENV PYTHONUNBUFFERED=1 \
     DATABASE_URL=sqlite:////data/shopshot.db \
     STORAGE_LOCAL_PATH=/data/outputs \
-    MOCK_MODE=false
+    MOCK_MODE=false \
+    PORT=7860
 
-EXPOSE 8000
+# 魔搭创空间要求监听 7860；本地 Docker 可通过 -e PORT=8000 覆盖
+EXPOSE 7860
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+    CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','7860')+'/health', timeout=5)"
 
 CMD ["python", "run_server.py"]

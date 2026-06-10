@@ -1,0 +1,3 @@
+# 魔搭创空间 Docker 类型配置
+# 文档：https://modelscope.cn/docs/studios/docker
+dockerfile: Dockerfile
